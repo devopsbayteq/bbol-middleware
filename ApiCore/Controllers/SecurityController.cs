@@ -60,6 +60,17 @@ public class SecurityController(IMediator mediator) : ApiControllerBase(mediator
         => Success(await Mediator.Send(request).ConfigureAwait(false));
 
     /// <summary>
+    /// Registra el alias de cuenta para el usuario autenticado.
+    /// </summary>
+    /// <param name="request">Alias cifrado con RSA (servidor)</param>
+    /// <returns>Operación genérica exitosa</returns>
+    [HttpPost("register-alias")]
+    [Authorize]
+    [ProducesResponseType(typeof(GenericResponse<GenericCommonOperationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RegisterAlias([FromBody] RegisterAliasRequest request)
+        => Success(await Mediator.Send(request).ConfigureAwait(false));
+
+    /// <summary>
     /// Valida monto de transferencia
     /// </summary>
     /// <param name="request">Datos de transferencia</param>

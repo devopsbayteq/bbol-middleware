@@ -162,5 +162,11 @@ public enum MessageCodes
     /// </summary>
     [EnumMember(Value = "Por motivos de seguridad, su cuenta se encuentra bloqueada. Por favor, contacte al banco.")]
     AccountLocked = 107,
+
+    /// <summary>
+    /// El alias ya está en uso por otro usuario o coincide con un nombre de usuario existente.
+    /// </summary>
+    [EnumMember(Value = "El alias indicado no está disponible.")]
+    AliasAlreadyInUse = 108,
 }
 

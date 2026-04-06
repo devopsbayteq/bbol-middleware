@@ -4,7 +4,9 @@ using ApiCore.Models;
 using Common.WebApi.Exceptions;
 using Common.WebApi.Extensions;
 using Common.WebApi.Messages;
+using Common.WebApi.Models.AppSettings;
 using Common.WebApi.Models.Enum;
+using Microsoft.Extensions.Options;
 
 namespace ApiCore.Middleware;
 
@@ -16,6 +18,7 @@ namespace ApiCore.Middleware;
 /// <param name="pluginFactory"></param>
 public class ExceptionHandlingMiddleware(
     RequestDelegate next,
+    IOptions<AppSetting> appSettings,
     ILogger<ExceptionHandlingMiddleware> logger
 ) : MiddlewareBase(next, logger)
 {
@@ -28,7 +31,7 @@ public class ExceptionHandlingMiddleware(
         catch (CustomException ex)
         {
             var message = ex.MessageCode.GetEnumMember();
-            var messageResponse = $"{message} ({(int)ex.MessageCode})";
+            var messageResponse = appSettings.Value.ShowMessageCode ? $"{message} ({(int)ex.MessageCode})" : message;
             if (Logger.IsEnabled(LogLevel.Information))
                 Logger.LogInformation(ex, "CustomException (Code: {@Code} - HTTP: {@CodeHttp} - Message: {@Message} - Reason: {@AdditionalInfoError})", ex.MessageCode, (int)HttpStatusCode.OK, message, ex.Message);
             await SetMessageResponse(httpContext, (int)HttpStatusCode.OK, (int)ex.MessageCode, messageResponse, null, ex.Message);
@@ -37,7 +40,7 @@ public class ExceptionHandlingMiddleware(
         {
             var code = (int)MessageCodes.SystemError;
             Logger.LogError(ex, "Exception (HTTP: {@CodeHttp} - {@Message}) ", (int)HttpStatusCode.InternalServerError, ex.Message);
-            await SetMessageResponse(httpContext, (int)HttpStatusCode.InternalServerError, code, MessageCodes.SystemError.GetEnumMember(), (string)null, ex.Message).ConfigureAwait(false);
+            await SetMessageResponse(httpContext, (int)HttpStatusCode.InternalServerError, code, MessageCodes.SystemError.GetEnumMember(), null, ex.Message).ConfigureAwait(false);
         }
     }
 

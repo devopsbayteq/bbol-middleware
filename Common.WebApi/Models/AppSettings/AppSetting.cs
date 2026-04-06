@@ -11,6 +11,11 @@ public sealed class AppSetting
     public bool LogSensitiveInformation { get; set; } = false;
 
     /// <summary>
+    /// Show message code
+    /// </summary>
+    public bool ShowMessageCode { get; set; } 
+
+    /// <summary>
     /// Log headers remove
     /// </summary>
     public List<string> LogHeadersRemove { get; set; } = [];

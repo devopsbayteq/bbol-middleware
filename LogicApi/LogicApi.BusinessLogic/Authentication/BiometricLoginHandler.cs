@@ -52,6 +52,7 @@ public class BiometricLoginHandler(
             throw new CustomException(MessageCodes.DataDoesNotMatch, "La firma biométrica del challenge es inválida.");
         userEntity.FailedLoginAttempts = 0;
         _ = await unitOfWork.UserRepository.UpdateAsync(userEntity).ConfigureAwait(false);
+        await EnsureOwnAccountsAsBeneficiariesAsync(userEntity, unitOfWork, cancellationToken).ConfigureAwait(false);
         return await GetLoginResponse(userEntity, device);
     }
 }

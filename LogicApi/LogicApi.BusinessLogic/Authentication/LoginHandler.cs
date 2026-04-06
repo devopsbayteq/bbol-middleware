@@ -95,6 +95,8 @@ public class LoginHandler(
                 RegisterDate = clock.Now(),
             }).ConfigureAwait(false);
 
+            await EnsureOwnAccountsAsBeneficiariesAsync(user, unitOfWork, cancellationToken).ConfigureAwait(false);
+
             return await GetLoginResponse(user, device);
         }
     }

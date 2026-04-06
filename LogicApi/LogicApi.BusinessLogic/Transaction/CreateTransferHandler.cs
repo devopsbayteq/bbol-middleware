@@ -27,40 +27,40 @@ public class CreateTransferHandler(
 {
     public override async Task<CreateTransferResponse> Handle(CreateTransferRequest request, CancellationToken cancellationToken)
     {
-        if (request.Amount > 100m)
-            throw new CustomException(MessageCodes.TransactionAmountGreaterThan100, "No se permite realizar transacciones mayores a 100.");
-
-        if (!Guid.TryParse(request.AccountGuid, out var accountGuid))
-            throw new CustomException(MessageCodes.SystemError, "El guid de cuenta es inválido.");
-        if (!Guid.TryParse(request.BeneficiaryContactGuid, out var beneficiaryGuid))
-            throw new CustomException(MessageCodes.SystemError, "El guid de beneficiario es inválido.");
-
         var accountExists = await unitOfWork.AccountUserRepository
-            .ExistAnyAsync(a => a.Guid == accountGuid)
+            .ExistAnyAsync(a => a.Guid == request.AccountGuid)
             .ConfigureAwait(false);
         if (!accountExists)
             throw new CustomException(MessageCodes.SystemError, "La cuenta origen no existe.");
 
-        var beneficiaryExists = await unitOfWork.BeneficiaryRepository
-            .ExistAnyAsync(b => b.Id == beneficiaryGuid)
+        var isBeneficiary = await unitOfWork.BeneficiaryRepository
+            .ExistAnyAsync(b => b.Id == request.BeneficiaryContactGuid)
             .ConfigureAwait(false);
-        if (!beneficiaryExists)
-            throw new CustomException(MessageCodes.SystemError, "El beneficiario no existe.");
+        var userId = request.ContextRequest?.CustomClaims?.UserId;
+
+        if (!isBeneficiary)
+        {
+            var existInOwnerAccounts = await unitOfWork.AccountUserRepository
+                .ExistAnyAsync(a => a.Guid == request.BeneficiaryContactGuid && a.UserId == userId)
+                .ConfigureAwait(false);
+            if (!existInOwnerAccounts)
+                throw new CustomException(MessageCodes.SystemError, "El beneficiario no es propietario de la cuenta.");
+        }
 
         var accountTransactions = await unitOfWork.TransactionRepository
             .SumAsync(
                 sum => sum.Amount,
-                where => where.AccountGuid == accountGuid)
+                where => where.AccountGuid == request.AccountGuid)
             .ConfigureAwait(false);
         if (request.Amount > accountTransactions)
             throw new CustomException(MessageCodes.TransactionAmountInsufficient, $"El saldo: {accountTransactions} de la cuenta es insuficiente para realizar la transacción.");
 
         var account = await unitOfWork.AccountUserRepository
-            .GetByFirstOrDefaultAsync(a => a.Guid == accountGuid)
+            .GetByFirstOrDefaultAsync(a => a.Guid == request.AccountGuid)
             .ConfigureAwait(false)
             ?? throw new CustomException(MessageCodes.SystemError, "La cuenta origen no existe.");
         var beneficiary = await unitOfWork.BeneficiaryRepository
-            .GetByFirstOrDefaultAsync(b => b.Id == beneficiaryGuid)
+            .GetByFirstOrDefaultAsync(b => b.Id == request.BeneficiaryContactGuid)
             .ConfigureAwait(false) ?? throw new CustomException(MessageCodes.SystemError, "El beneficiario no existe.");
         var bankCoreRequest = BuildBankCoreTransferRequest(request, account, beneficiary);
 
@@ -86,8 +86,8 @@ public class CreateTransferHandler(
         {
             Id = Guid.NewGuid(),
             RegisterDate = clock.Now(),
-            AccountGuid = accountGuid,
-            BeneficiaryGuid = beneficiaryGuid,
+            AccountGuid = request.AccountGuid,
+            BeneficiaryGuid = request.BeneficiaryContactGuid,
             Amount = -Math.Abs(request.Amount),
             Description = request.Concept ?? string.Empty,
             ExternalIdentifier = externalId,
@@ -97,6 +97,32 @@ public class CreateTransferHandler(
             TransactionType = (byte)TransactionType.SentTransfers,
             NormalizedDescription = NormalizeText(request.Concept)
         }).ConfigureAwait(false);
+        //Si no es beneficiario, se debe crear una transacción entre cuentas propias
+        if (!isBeneficiary)
+        {
+
+            var ownerAccountTransactions = await unitOfWork.TransactionRepository
+                .SumAsync(
+                    sum => sum.Amount,
+                    where => where.AccountGuid == request.BeneficiaryContactGuid)
+                .ConfigureAwait(false);
+
+            await unitOfWork.TransactionRepository.AddAsync(new CoreTransaction
+            {
+                Id = Guid.NewGuid(),
+                RegisterDate = clock.Now(),
+                AccountGuid = request.BeneficiaryContactGuid,
+                BeneficiaryGuid = request.AccountGuid,
+                Amount = Math.Abs(request.Amount),
+                Description = request.Concept ?? string.Empty,
+                ExternalIdentifier = externalId,
+                AbsoluteAmount = Math.Abs(request.Amount),
+                BeforeTransactionAmount = ownerAccountTransactions,
+                ResultingAmount = ownerAccountTransactions + request.Amount,
+                TransactionType = (byte)TransactionType.ReceivedTransfers,
+                NormalizedDescription = NormalizeText(request.Concept)
+            }).ConfigureAwait(false);
+        }
 
         return new CreateTransferResponse
         {

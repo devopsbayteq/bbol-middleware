@@ -1,5 +1,6 @@
 using PersistenceDb.Models.Authentication;
 using PersistenceDb.Models.Core;
+using PersistenceDb.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using PersistenceDb.Utils.Extension;
 using PersistenceDb.Models.Configuration;
@@ -17,6 +18,7 @@ public class PersistenceContext(
         var databaseConfiguration = configuration.GetSection("CustomConnectionStrings").Get<List<DatabaseConfiguration>>().FirstOrDefault()
             ?? throw new InvalidOperationException("No se encontró la configuración de la base de datos en el appsettings.json");
         modelBuilder.UseEncryption(databaseConfiguration.AesSecret);
+
         base.OnModelCreating(modelBuilder);
     }
 

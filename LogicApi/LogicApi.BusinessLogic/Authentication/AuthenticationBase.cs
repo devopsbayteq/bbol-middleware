@@ -6,9 +6,13 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Linq;
 using LogicApi.Model.Response.Authentication;
 using PersistenceDb.Models.Authentication;
+using PersistenceDb.Models.Enums;
+using PersistenceDb.Repository.Interfaces.UnitOfWork;
 using Common.WebApi.Models;
+using CoreBeneficiary = PersistenceDb.Models.Core.Beneficiary;
 using Common.WebApi.Security;
 using Common.WebApi.Extensions;
 using Common.WebApi.Exceptions;
@@ -79,7 +83,59 @@ public abstract class AuthenticationBase<TRequest, TResponse>(
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <summary>
+    /// Registra en BENEFICIARIO las cuentas del usuario como tipo propio si aún no existen (mismo número de cuenta y usuario).
+    /// </summary>
+    protected async Task EnsureOwnAccountsAsBeneficiariesAsync(
+        User user,
+        IUnitOfWork unitOfWork,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        const string bankName = "Banco Bolivariano";
 
+        var displayName = $"{user.FirstName} {user.Surname}".Trim();
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = user.FirstName ?? user.Surname ?? "Titular";
+
+        var accounts = await unitOfWork.AccountUserRepository
+            .GetByAsync(a => a.UserId == user.Guid)
+            .ConfigureAwait(false);
+        if (accounts.Count == 0)
+            return;
+
+        var existingOwnBeneficiaries = await unitOfWork.BeneficiaryRepository
+            .GetByAsync(b => b.UserId == user.Guid && b.BeneficiaryType == BeneficiaryTypeId.OwnAccounts)
+            .ConfigureAwait(false);
+
+        var coveredAccountNumbers = existingOwnBeneficiaries
+            .Select(b => b.AccountNumber ?? string.Empty)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var toInsert = new List<CoreBeneficiary>();
+        foreach (var account in accounts)
+        {
+            var accountNumber = account.AccountNumber ?? string.Empty;
+            if (coveredAccountNumbers.Contains(accountNumber))
+                continue;
+
+            coveredAccountNumbers.Add(accountNumber);
+            toInsert.Add(new CoreBeneficiary
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Guid,
+                BeneficiaryType = BeneficiaryTypeId.OwnAccounts,
+                Name = displayName,
+                Identification = user.DocumentNumber ?? string.Empty,
+                AccountType = (byte)account.AccountType,
+                BankName = bankName,
+                AccountNumber = accountNumber
+            });
+        }
+
+        if (toInsert.Count > 0)
+            _ = await unitOfWork.BeneficiaryRepository.AddRangeAsync(toInsert).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Obtiene la respuesta de login

@@ -21,13 +21,13 @@ public class CreateTransferRequest : IApiBaseRequest<CreateTransferResponse>
     /// Guid de beneficiario o contacto
     /// </summary>
     [Required]
-    public string BeneficiaryContactGuid { get; set; } = string.Empty;
+    public Guid BeneficiaryContactGuid { get; set; }
 
     /// <summary>
     /// Guid de cuenta origen
     /// </summary>
     [Required]
-    public string AccountGuid { get; set; } = string.Empty;
+    public Guid AccountGuid { get; set; }
 
     /// <summary>
     /// Concepto de transferencia

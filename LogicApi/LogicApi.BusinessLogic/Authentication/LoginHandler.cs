@@ -38,6 +38,7 @@ public class LoginHandler(
     /// <returns></returns>
     public override async Task<LoginResponse> Handle(LoginRequest request, CancellationToken cancellationToken)
     {
+         
         using (unitOfWork)
         {
             var decodeUsername = request.Username.Decode();

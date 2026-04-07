@@ -17,8 +17,6 @@ public abstract class TransactionBase<TRequest, TResponse>(
 {
     public abstract Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
 
-
-
     /// <summary>
     /// Normaliza el texto a minúsculas y elimina los acentos
     /// </summary>

@@ -1,4 +1,5 @@
 using Common.WebApi.Exceptions;
+using Common.WebApi.Extensions;
 using Common.WebApi.Messages;
 using LogicApi.Model.Enums;
 using LogicApi.Model.Request.ContractBalance;
@@ -28,16 +29,25 @@ public class GetHomeDashboardHandler(
         var balanceByAccount = await unitOfWork.TransactionRepository
             .GetAmountByAccountsAsync(accountIds)
             .ConfigureAwait(false);
-
+        var accountNumbers = userAccounts.Select(a => a.AccountNumber).ToList();
+        var beneficiaryAccounts = (await unitOfWork.BeneficiaryRepository.GetGenericAsync(
+            select => new
+            {
+                select.AccountNumber,
+                select.Id
+            },
+            where => where.UserId == userGuid && accountNumbers.Contains(where.AccountNumber)
+        )).ToDictionary(x => x.AccountNumber, x => x.Id);
 
         var response = new GetHomeDashboardResponse
         {
             Accounts = [.. userAccounts.Select(account => new HomeAccountItem
                 {
-                    AccountGuid = account.Guid.ToString(),
+                    AccountGuid = account.Guid,
                     MaskedAccountNumber = MaskAccountNumber(account.AccountNumber),
                     AccountType = (AccountType)account.AccountType,
-                    Balance = balanceByAccount.TryGetValue(account.Guid, out var balance) ? balance : 0m
+                    Balance = balanceByAccount.TryGetValue(account.Guid, out var balance) ? balance : 0m,
+                    BeneficiaryGuid = beneficiaryAccounts.FirstOrDefaultValue(account.AccountNumber)
                 })],
             CreditCards =
             [

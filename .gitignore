@@ -12,3 +12,4 @@ Persistence/Scripts/
 .vs
 *.user
 logs
+*.lscache

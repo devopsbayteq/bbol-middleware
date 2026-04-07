@@ -46,11 +46,18 @@ public class GetHomeDashboardResponse
 public class HomeAccountItem
 {
     [IgnoreSensible]
-    public string AccountGuid { get; set; } = string.Empty;
+    public Guid AccountGuid { get; set; }
     public string MaskedAccountNumber { get; set; } = string.Empty;
     public AccountType AccountType { get; set; }
     public string AccountTypeLabel => AccountType.GetEnumMember();
     public decimal Balance { get; set; }
+    
+    /// <summary>
+    /// Guid del beneficiario
+    /// </summary>
+    /// <value></value>
+    public Guid BeneficiaryGuid { get; set; }
+
 }
 
 /// <summary>

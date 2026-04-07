@@ -14,6 +14,11 @@ public enum MessageCodes
     Success = 0,
 
     /// <summary>
+    /// Success
+    /// </summary>
+    BankCoreUserMessage = 1,
+
+    /// <summary>
     /// Error del sistema
     /// </summary>
     [EnumMember(Value = "Ocurrio un error interno, por favor intente nuevamente")]
@@ -130,7 +135,7 @@ public enum MessageCodes
     /// <summary>
     /// Credenciales inválidas
     /// </summary>
-    [EnumMember(Value = "Credenciales inválidas")]
+    [EnumMember(Value = "Usuario y/o contraseña incorrecta")]
     InvalidCredentials = 102,
 
     /// <summary>
@@ -160,7 +165,7 @@ public enum MessageCodes
     /// <summary>
     /// La cuenta está bloqueada por intentos fallidos de acceso.
     /// </summary>
-    [EnumMember(Value = "Por motivos de seguridad, su cuenta se encuentra bloqueada. Por favor, contacte al banco.")]
+    [EnumMember(Value = "Por motivos de seguridad, su cuenta se encuentra bloqueada. Por favor, contacta a 550-5050.")]
     AccountLocked = 107,
 
     /// <summary>

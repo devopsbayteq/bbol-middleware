@@ -12,6 +12,7 @@ using PersistenceDb.Repository.Interfaces.UnitOfWork;
 using CoreTransaction = PersistenceDb.Models.Core.Transaction;
 using CoreBeneficiary = PersistenceDb.Models.Core.Beneficiary;
 using Common.WebApi.Clock;
+using BankCore.Integration.Exceptions;
 
 namespace LogicApi.BusinessLogic.Transaction;
 
@@ -27,25 +28,12 @@ public class CreateTransferHandler(
 {
     public override async Task<CreateTransferResponse> Handle(CreateTransferRequest request, CancellationToken cancellationToken)
     {
-        var accountExists = await unitOfWork.AccountUserRepository
-            .ExistAnyAsync(a => a.Guid == request.AccountGuid)
+        var originAccount = await unitOfWork.AccountUserRepository
+            .GetByFirstOrDefaultAsync(a => a.Guid == request.AccountGuid)
+            .ConfigureAwait(false) ?? throw new CustomException(MessageCodes.SystemError, "La cuenta origen no existe.");
+        var beneficiary = await unitOfWork.BeneficiaryRepository
+            .GetByFirstOrDefaultAsync(b => b.Id == request.BeneficiaryContactGuid && b.UserId == originAccount.UserId)
             .ConfigureAwait(false);
-        if (!accountExists)
-            throw new CustomException(MessageCodes.SystemError, "La cuenta origen no existe.");
-
-        var isBeneficiary = await unitOfWork.BeneficiaryRepository
-            .ExistAnyAsync(b => b.Id == request.BeneficiaryContactGuid)
-            .ConfigureAwait(false);
-        var userId = request.ContextRequest?.CustomClaims?.UserId;
-
-        if (!isBeneficiary)
-        {
-            var existInOwnerAccounts = await unitOfWork.AccountUserRepository
-                .ExistAnyAsync(a => a.Guid == request.BeneficiaryContactGuid && a.UserId == userId)
-                .ConfigureAwait(false);
-            if (!existInOwnerAccounts)
-                throw new CustomException(MessageCodes.SystemError, "El beneficiario no es propietario de la cuenta.");
-        }
 
         var accountTransactions = await unitOfWork.TransactionRepository
             .SumAsync(
@@ -55,14 +43,7 @@ public class CreateTransferHandler(
         if (request.Amount > accountTransactions)
             throw new CustomException(MessageCodes.TransactionAmountInsufficient, $"El saldo: {accountTransactions} de la cuenta es insuficiente para realizar la transacción.");
 
-        var account = await unitOfWork.AccountUserRepository
-            .GetByFirstOrDefaultAsync(a => a.Guid == request.AccountGuid)
-            .ConfigureAwait(false)
-            ?? throw new CustomException(MessageCodes.SystemError, "La cuenta origen no existe.");
-        var beneficiary = await unitOfWork.BeneficiaryRepository
-            .GetByFirstOrDefaultAsync(b => b.Id == request.BeneficiaryContactGuid)
-            .ConfigureAwait(false) ?? throw new CustomException(MessageCodes.SystemError, "El beneficiario no existe.");
-        var bankCoreRequest = BuildBankCoreTransferRequest(request, account, beneficiary);
+        var bankCoreRequest = BuildBankCoreTransferRequest(request, originAccount, beneficiary);
 
         TransferBetweenAccountsResponse coreResponse;
         try
@@ -71,17 +52,17 @@ public class CreateTransferHandler(
                 .TransferBetweenAccountsAsync(bankCoreRequest, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (InvalidOperationException ex)
+        catch (BankCoreUserMessageException ex)
         {
             logger.LogError(ex, "Error al procesar la transferencia en BankCore.");
-            throw new CustomException(MessageCodes.SystemError, "No se pudo completar la transferencia con el core bancario.");
+            throw new CustomException(MessageCodes.BankCoreUserMessage, ex.Message);
         }
 
         if (coreResponse is null || string.IsNullOrWhiteSpace(coreResponse.SecuenciaTransaccion))
             throw new CustomException(MessageCodes.SystemError, "El core bancario no devolvió un identificador de transacción válido.");
 
         var externalId = coreResponse.SecuenciaTransaccion.Trim();
-
+        await unitOfWork.BeginTransactionAsync().ConfigureAwait(false);
         await unitOfWork.TransactionRepository.AddAsync(new CoreTransaction
         {
             Id = Guid.NewGuid(),
@@ -98,21 +79,27 @@ public class CreateTransferHandler(
             NormalizedDescription = NormalizeText(request.Concept)
         }).ConfigureAwait(false);
         //Si no es beneficiario, se debe crear una transacción entre cuentas propias
-        if (!isBeneficiary)
+        var ownerBeneficiary = await unitOfWork.AccountUserRepository
+            .GetByFirstOrDefaultAsync(a => a.AccountNumber == beneficiary.AccountNumber && a.UserId == originAccount.UserId)
+            .ConfigureAwait(false) ??
+            throw new CustomException(MessageCodes.SystemError, "El beneficiario no es propietario de la cuenta.");
+        if (ownerBeneficiary is not null)
         {
-
             var ownerAccountTransactions = await unitOfWork.TransactionRepository
                 .SumAsync(
                     sum => sum.Amount,
-                    where => where.AccountGuid == request.BeneficiaryContactGuid)
+                    where => where.AccountGuid == ownerBeneficiary.Guid)
                 .ConfigureAwait(false);
+            var originBenficiaryAccount = await unitOfWork.BeneficiaryRepository.GetFirstOrDefaultGenericAsync(
+                select => select.Id,
+                where => where.AccountNumber == originAccount.AccountNumber && where.UserId == originAccount.UserId).ConfigureAwait(false);
 
             await unitOfWork.TransactionRepository.AddAsync(new CoreTransaction
             {
                 Id = Guid.NewGuid(),
                 RegisterDate = clock.Now(),
-                AccountGuid = request.BeneficiaryContactGuid,
-                BeneficiaryGuid = request.AccountGuid,
+                AccountGuid = ownerBeneficiary.Guid,
+                BeneficiaryGuid = originBenficiaryAccount,
                 Amount = Math.Abs(request.Amount),
                 Description = request.Concept ?? string.Empty,
                 ExternalIdentifier = externalId,
@@ -123,6 +110,7 @@ public class CreateTransferHandler(
                 NormalizedDescription = NormalizeText(request.Concept)
             }).ConfigureAwait(false);
         }
+        await unitOfWork.CommitAsync().ConfigureAwait(false);
 
         return new CreateTransferResponse
         {
@@ -133,7 +121,7 @@ public class CreateTransferHandler(
     private static TransferBetweenAccountsRequest BuildBankCoreTransferRequest(
         CreateTransferRequest request,
         AccountUser account,
-        CoreBeneficiary beneficiary)
+        CoreBeneficiary externalBeneficiary)
     {
         var amountStr = request.Amount.ToString(CultureInfo.InvariantCulture);
         var clientDate = request.ContextRequest?.Headers?.ClientDate;
@@ -154,17 +142,17 @@ public class CreateTransferHandler(
             },
             Destino = new TransferDestinationInfo
             {
-                TipoCuenta = MapBeneficiaryAccountTypeCode(beneficiary.AccountType),
-                Cuenta = beneficiary.AccountNumber,
-                Banco = beneficiary.BankName
+                TipoCuenta = MapBeneficiaryAccountTypeCode(externalBeneficiary.AccountType),
+                Cuenta = externalBeneficiary.AccountNumber,
+                Banco = externalBeneficiary.BankName ?? "Banco Bolivariano",
             },
             Beneficiario = new TransferBeneficiaryInfo
             {
-                Nombre = beneficiary.Name,
+                Nombre = externalBeneficiary?.Name,
                 Identificacion = new TransferIdentificationInfo
                 {
                     Tipo = "C",
-                    Numero = beneficiary.Identification
+                    Numero = externalBeneficiary?.Identification,
                 }
             },
             Montos = new TransferAmountInfo

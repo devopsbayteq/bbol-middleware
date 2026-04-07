@@ -30,10 +30,11 @@ public class ExceptionHandlingMiddleware(
         }
         catch (CustomException ex)
         {
-            var message = ex.MessageCode.GetEnumMember();
+            var message = ex.MessageCode == MessageCodes.BankCoreUserMessage ? ex.Message : ex.MessageCode.GetEnumMember();
             var messageResponse = appSettings.Value.ShowMessageCode ? $"{message} ({(int)ex.MessageCode})" : message;
             if (Logger.IsEnabled(LogLevel.Information))
                 Logger.LogInformation(ex, "CustomException (Code: {@Code} - HTTP: {@CodeHttp} - Message: {@Message} - Reason: {@AdditionalInfoError})", ex.MessageCode, (int)HttpStatusCode.OK, message, ex.Message);
+
             await SetMessageResponse(httpContext, (int)HttpStatusCode.OK, (int)ex.MessageCode, messageResponse, null, ex.Message);
         }
         catch (Exception ex)

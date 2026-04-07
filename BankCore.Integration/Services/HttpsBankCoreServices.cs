@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using BankCore.Integration.Exceptions;
 using BankCore.Integration.Interfaces;
 using BankCore.Integration.Models.Common;
 using BankCore.Integration.Models.Transfer;
@@ -9,6 +10,7 @@ using BankCore.Integration.Security;
 using Common.WebApi.Attributes.Json;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace BankCore.Integration.Services;
 
@@ -34,27 +36,37 @@ internal sealed class HttpsBankCoreServices(
     {
         var token = await tokenProvider.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
         var client = httpClientFactory.CreateClient("BankCoreApiClient");
-        var payload = JsonConvert.SerializeObject(request, JsonSerializerSettings);
+        var payload = JsonConvert.SerializeObject(request, RequestJsonSerializerSettings);
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, relativePath)
         {
             Content = new StringContent(payload, Encoding.UTF8, new MediaTypeHeaderValue("application/json"))
         };
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        var jsonRequest = JsonConvert.SerializeObject(request, JsonSerializerSettings);
         if (logger.IsEnabled(LogLevel.Information))
-            logger.LogInformation("Request BankCore {@RelativePath}: {@Request}", relativePath, jsonRequest);
+            logger.LogInformation("Request BankCore {@RelativePath}: {@Request}", relativePath, payload);
         using var response = await client.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
         var raw = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (logger.IsEnabled(LogLevel.Information))
             logger.LogInformation("Response BankCore {@RelativePath}: {@StatusCode}", relativePath, response.StatusCode);
         try
         {
+            if (!response.IsSuccessStatusCode)
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                    logger.LogInformation("Error response BankCore: {@Raw}", raw);
+                var errorResponse = JsonConvert.DeserializeObject<BankCoreErrorResponse>(raw);
+                throw new BankCoreUserMessageException(errorResponse?.UserMessage ?? "No se pudo procesar tu transaccion. Por favor, contacta a 550-5050.");
+            }
             var model = JsonConvert.DeserializeObject<TResponse>(raw);
             var jsonResponse = JsonConvert.SerializeObject(model, JsonSerializerSettings);
             if (logger.IsEnabled(LogLevel.Information))
                 logger.LogInformation("Response BankCore {@RelativePath}: {@Model}", relativePath, jsonResponse);
             return model;
+        }
+        catch (BankCoreUserMessageException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -62,6 +74,18 @@ internal sealed class HttpsBankCoreServices(
             throw new InvalidOperationException("Error al deserializar la respuesta de la API externa.", ex);
         }
     }
+
+    /// <summary>
+    /// Request al core: nombres de propiedad en camelCase; mantiene reglas de datos sensibles.
+    /// </summary>
+    private static JsonSerializerSettings RequestJsonSerializerSettings => new()
+    {
+        ContractResolver = new SensitiveProductionProperty
+        {
+            NamingStrategy = new CamelCaseNamingStrategy()
+        },
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+    };
 
     private static JsonSerializerSettings JsonSerializerSettings => new()
     {

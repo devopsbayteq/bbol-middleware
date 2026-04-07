@@ -50,7 +50,26 @@ public class GetHomeDashboardResponse
     /// Pagos frecuentes
     /// </summary>
     public List<HomeFrequentPaymentItem> FrequentPayments { get; set; } = [];
+
+    /// <summary>
+    /// Actividades frecuentes
+    /// </summary>
+    public List<HomeFrequentActivityItem> FrequentActivities { get; set; } = [];
 }
+
+/// <summary>
+/// Actividades frecuentes (Frequent activities)
+/// </summary>
+public class HomeFrequentActivityItem
+{
+    public DateTime Date { get; set; }
+
+    public string TransactionType { get; set; }
+
+    public string Amount { get; set; }
+}
+
+
 
 /// <summary>
 /// 

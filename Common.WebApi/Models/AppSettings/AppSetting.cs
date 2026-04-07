@@ -119,7 +119,26 @@ public sealed class AppSetting
     /// Home dashboard banners
     /// </summary>
     public List<BannerItem> HomeDashboardBanners { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard frequent activities
+    /// </summary>
+    public List<HomeFrequentActivityItem> HomeFrequentActivities { get; set; } = [];
 }
+
+
+/// <summary>
+/// Actividades frecuentes (Frequent activities)
+/// </summary>
+public class HomeFrequentActivityItem
+{
+    public DateTime Date { get; set; }
+
+    public string TransactionType { get; set; }
+
+    public string Amount { get; set; }
+}
+
 
 /// <summary>
 /// Banner item

@@ -18,15 +18,22 @@ public class GetBeneficiaryContactsHandler(
     public override async Task<GetBeneficiaryContactsResponse> Handle(GetBeneficiaryContactsRequest request, CancellationToken cancellationToken)
     {
         var userId = request.ContextRequest?.CustomClaims?.UserId;
+        var beneficiaryType = request.BeneficiaryType switch
+        {
+            BeneficiaryType.OwnAccounts => BeneficiaryTypeId.OwnAccounts,
+            BeneficiaryType.ExternalAccounts => BeneficiaryTypeId.ExternalAccounts,
+            _ => throw new InvalidOperationException("Tipo de beneficiario no válido."),
+        };
         var beneficiaries = await unitOfWork.BeneficiaryRepository.GetByAsync(
-            where => where.UserId == userId && where.BeneficiaryType == BeneficiaryTypeId.ExternalAccounts
+            where => where.UserId == userId && where.BeneficiaryType == beneficiaryType
         ).ConfigureAwait(false);
         var response = new GetBeneficiaryContactsResponse
         {
             Contacts = [.. beneficiaries.Select(b =>
             {
                 var source = string.IsNullOrWhiteSpace(b.AccountNumber) ? b.Identification : b.AccountNumber;
-                var lastFour = source.Length >= 4 ? source[^4..] : source;
+                string lastThree = source.Length >= 3 ? source[^3..] : source;
+                string masked = string.Concat(Enumerable.Repeat("*", Math.Max(0, source.Length - 3))) + lastThree;
                 return new BeneficiaryContactItem
                 {
                     BeneficiaryGuid = b.Id,
@@ -34,7 +41,7 @@ public class GetBeneficiaryContactsHandler(
                     BankName = b.BankName,
                     AccountType = (Model.Enums.AccountType)b.AccountType,
                     BeneficiaryAccountNumber = b.AccountNumber ?? string.Empty,
-                    LastFourDigits = lastFour
+                    LastFourDigits = masked
                 };
             })]
         };

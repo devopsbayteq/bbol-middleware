@@ -1,6 +1,7 @@
 using Common.WebApi.Attributes;
 using Common.WebApi.Extensions;
 using LogicApi.Model.Enums;
+using LogicApi.Model.Response.Beneficiary;
 
 namespace LogicApi.Model.Response.ContractBalance;
 
@@ -56,7 +57,7 @@ public class HomeAccountItem
     /// Guid del beneficiario
     /// </summary>
     /// <value></value>
-    public Guid BeneficiaryGuid { get; set; }
+    public BeneficiaryContactItem Beneficiary { get; set; }
 
 }
 

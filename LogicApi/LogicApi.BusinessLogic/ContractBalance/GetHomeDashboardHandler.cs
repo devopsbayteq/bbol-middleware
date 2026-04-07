@@ -2,8 +2,10 @@ using Common.WebApi.Exceptions;
 using Common.WebApi.Extensions;
 using Common.WebApi.Messages;
 using LogicApi.Model.Enums;
+using LogicApi.Model.Request.Beneficiary;
 using LogicApi.Model.Request.ContractBalance;
 using LogicApi.Model.Response.ContractBalance;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using PersistenceDb.Repository.Interfaces.UnitOfWork;
 
@@ -14,7 +16,8 @@ namespace LogicApi.BusinessLogic.ContractBalance;
 /// </summary>
 public class GetHomeDashboardHandler(
     ILogger<GetHomeDashboardHandler> logger,
-    IUnitOfWork unitOfWork
+    IUnitOfWork unitOfWork,
+    IMediator mediator
     ) : ContractBalanceBase<GetHomeDashboardRequest, GetHomeDashboardResponse>(logger)
 {
     public override async Task<GetHomeDashboardResponse> Handle(GetHomeDashboardRequest request, CancellationToken cancellationToken)
@@ -29,25 +32,21 @@ public class GetHomeDashboardHandler(
         var balanceByAccount = await unitOfWork.TransactionRepository
             .GetAmountByAccountsAsync(accountIds)
             .ConfigureAwait(false);
-        var accountNumbers = userAccounts.Select(a => a.AccountNumber).ToList();
-        var beneficiaryAccounts = (await unitOfWork.BeneficiaryRepository.GetGenericAsync(
-            select => new
-            {
-                select.AccountNumber,
-                select.Id
-            },
-            where => where.UserId == userGuid && accountNumbers.Contains(where.AccountNumber)
-        )).ToDictionary(x => x.AccountNumber, x => x.Id);
-
+        var beneficiaryAccounts = await mediator.Send(new GetBeneficiaryContactsRequest
+        {
+            BeneficiaryType = BeneficiaryType.OwnAccounts,
+            ContextRequest = request.ContextRequest
+        }, cancellationToken).ConfigureAwait(false);
+        var beneficiaryAccountsDictionary = beneficiaryAccounts.Contacts.ToDictionary(x => x.BeneficiaryAccountNumber);
         var response = new GetHomeDashboardResponse
         {
             Accounts = [.. userAccounts.Select(account => new HomeAccountItem
                 {
                     AccountGuid = account.Guid,
-                    MaskedAccountNumber = MaskAccountNumber(account.AccountNumber),
+                    MaskedAccountNumber = account.AccountNumber,
                     AccountType = (AccountType)account.AccountType,
                     Balance = balanceByAccount.TryGetValue(account.Guid, out var balance) ? balance : 0m,
-                    BeneficiaryGuid = beneficiaryAccounts.FirstOrDefaultValue(account.AccountNumber)
+                    Beneficiary = beneficiaryAccountsDictionary.FirstOrDefaultValue(account.AccountNumber)
                 })],
             CreditCards =
             [

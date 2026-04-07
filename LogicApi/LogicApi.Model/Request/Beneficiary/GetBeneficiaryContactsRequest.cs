@@ -14,4 +14,22 @@ public class GetBeneficiaryContactsRequest : IApiBaseRequest<GetBeneficiaryConta
     [JsonIgnore]
     [IgnoreSensible]
     public ContextRequest ContextRequest { get; set; }
+
+    /// <summary>
+    /// Tipo de beneficiario
+    /// </summary>
+    public BeneficiaryType BeneficiaryType { get; set; } = BeneficiaryType.ExternalAccounts;
+}
+
+public enum BeneficiaryType
+{
+    /// <summary>
+    /// Cuentas propias del usuario.
+    /// </summary>
+    OwnAccounts = 1,
+
+    /// <summary>
+    /// Cuentas o contactos externos (valor por defecto al insertar).
+    /// </summary>
+    ExternalAccounts = 2
 }

@@ -148,11 +148,11 @@ public class CreateTransferHandler(
             },
             Beneficiario = new TransferBeneficiaryInfo
             {
-                Nombre = externalBeneficiary?.Name,
+                Nombre = externalBeneficiary.Name,
                 Identificacion = new TransferIdentificationInfo
                 {
                     Tipo = "C",
-                    Numero = externalBeneficiary?.Identification,
+                    Numero = externalBeneficiary.Identification,
                 }
             },
             Montos = new TransferAmountInfo

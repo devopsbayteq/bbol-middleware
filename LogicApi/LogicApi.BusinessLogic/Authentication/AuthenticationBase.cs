@@ -162,7 +162,8 @@ public abstract class AuthenticationBase<TRequest, TResponse>(
             AccessToken = GenerateAccessToken(listClaims),
             FirstName = user.FirstName,
             SessionTimeSeconds = AppSettings.Session.SessionTimeSeconds,
-            InactivityTimeoutSeconds = AppSettings.Session.InactivityTimeoutSeconds
+            InactivityTimeoutSeconds = AppSettings.Session.InactivityTimeoutSeconds,
+            Alias = user.Alias
         });
     }
 }

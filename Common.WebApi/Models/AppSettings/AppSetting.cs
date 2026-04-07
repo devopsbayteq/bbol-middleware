@@ -13,7 +13,7 @@ public sealed class AppSetting
     /// <summary>
     /// Show message code
     /// </summary>
-    public bool ShowMessageCode { get; set; } 
+    public bool ShowMessageCode { get; set; }
 
     /// <summary>
     /// Log headers remove
@@ -84,6 +84,66 @@ public sealed class AppSetting
     /// Versiones de app móvil
     /// </summary>
     public List<VersionConfiguration> VersionsConfiguration { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> HomeDashboardIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> AccountTypeIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> CreditCardTypeIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> LoanTypeIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> InvestmentTypeIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard icons
+    /// </summary>
+    public List<IconModel> FrequentPaymentTypeIcons { get; set; } = [];
+
+    /// <summary>
+    /// Home dashboard banners
+    /// </summary>
+    public List<BannerItem> HomeDashboardBanners { get; set; } = [];
+}
+
+/// <summary>
+/// Banner item
+/// </summary>
+public class BannerItem
+{
+    public string Text { get; set; } = string.Empty;
+    public string ButtonText { get; set; } = string.Empty;
+    public string ButtonLink { get; set; } = string.Empty;
+    public string Landscape { get; set; }
+}
+/// <summary>
+/// Icon model
+/// </summary>
+public class IconModel
+{
+    /// <summary>
+    /// Icon code
+    /// </summary>
+    public string IconCode { get; set; }
+    /// <summary>
+    /// Text
+    /// </summary>
+    public string Text { get; set; }
 }
 
 

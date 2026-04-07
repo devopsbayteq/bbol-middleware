@@ -1,13 +1,16 @@
 using Common.WebApi.Exceptions;
 using Common.WebApi.Extensions;
 using Common.WebApi.Messages;
+using Common.WebApi.Models.AppSettings;
 using LogicApi.Model.Enums;
 using LogicApi.Model.Request.Beneficiary;
 using LogicApi.Model.Request.ContractBalance;
 using LogicApi.Model.Response.ContractBalance;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PersistenceDb.Repository.Interfaces.UnitOfWork;
+using BannerItem = LogicApi.Model.Response.ContractBalance.BannerItem;
 
 namespace LogicApi.BusinessLogic.ContractBalance;
 
@@ -17,7 +20,8 @@ namespace LogicApi.BusinessLogic.ContractBalance;
 public class GetHomeDashboardHandler(
     ILogger<GetHomeDashboardHandler> logger,
     IUnitOfWork unitOfWork,
-    IMediator mediator
+    IMediator mediator,
+    IOptions<AppSetting> options
     ) : ContractBalanceBase<GetHomeDashboardRequest, GetHomeDashboardResponse>(logger)
 {
     public override async Task<GetHomeDashboardResponse> Handle(GetHomeDashboardRequest request, CancellationToken cancellationToken)
@@ -37,11 +41,26 @@ public class GetHomeDashboardHandler(
             BeneficiaryType = BeneficiaryType.OwnAccounts,
             ContextRequest = request.ContextRequest
         }, cancellationToken).ConfigureAwait(false);
+        var icons = options.Value.HomeDashboardIcons;
+        var accountTypeIcons = options.Value.AccountTypeIcons;
+        var creditCardTypeIcons = options.Value.CreditCardTypeIcons;
+        var loanTypeIcons = options.Value.LoanTypeIcons;
+        var investmentTypeIcons = options.Value.InvestmentTypeIcons;
+        var frequentPaymentTypeIcons = options.Value.FrequentPaymentTypeIcons;
         var beneficiaryAccountsDictionary = beneficiaryAccounts.Contacts.ToDictionary(x => x.BeneficiaryAccountNumber);
         var response = new GetHomeDashboardResponse
         {
+            HomeDashboardIcons = icons,
+            Banners = [.. options.Value.HomeDashboardBanners.Select(x => new BannerItem()
+            {
+                Text = x.Text,
+                ButtonText = x.ButtonText,
+                ButtonLink = x.ButtonLink,
+                Landscape = x.Landscape
+            })],
             Accounts = [.. userAccounts.Select(account => new HomeAccountItem
                 {
+                    AccountTypeIcons = accountTypeIcons,
                     AccountGuid = account.Guid,
                     MaskedAccountNumber = account.AccountNumber,
                     AccountType = (AccountType)account.AccountType,
@@ -52,6 +71,7 @@ public class GetHomeDashboardHandler(
             [
                 new()
                 {
+                    CreditCardTypeIcons = creditCardTypeIcons,
                     MaskedCardNumber = "**** **** **** 1245",
                     TotalDue = 280.73m,
                     MaxPaymentDate = DateTime.UtcNow.Date.AddDays(12)
@@ -61,6 +81,7 @@ public class GetHomeDashboardHandler(
             [
                 new()
                 {
+                    LoanTypeIcons = loanTypeIcons,
                     LoanGuid = Guid.NewGuid().ToString(),
                     OutstandingBalance = 7800.10m,
                     NextInstallmentAmount = 230.50m,
@@ -71,25 +92,19 @@ public class GetHomeDashboardHandler(
             [
                 new()
                 {
+                    InvestmentTypeIcons = investmentTypeIcons,
                     InvestmentGuid = Guid.NewGuid().ToString(),
                     ProductName = "Fondo Conservador",
                     CurrentValue = 3540.90m,
                     Currency = "USD"
                 }
             ],
-            FrequentPayments =
-            [
-                new()
-                {
-                    BeneficiaryName = "CNEL",
-                    BeneficiaryType = "BasicService"
-                },
-                new()
-                {
-                    BeneficiaryName = "Carlos Herrera",
-                    BeneficiaryType = "Account"
-                }
-            ]
+            FrequentPayments = frequentPaymentTypeIcons.Select(x => new HomeFrequentPaymentItem
+            {
+                BeneficiaryName = x.Text,
+                BeneficiaryType = x.IconCode
+            }).ToList()
+
         };
 
         response.TotalBalance = response.Accounts.Sum(x => x.Balance);

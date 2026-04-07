@@ -13,9 +13,6 @@ using Common.WebApi.Messages;
 using PersistenceDb.Models.Authentication;
 using PersistenceDb.Repository.Interfaces.UnitOfWork;
 using Common.WebApi.Clock;
-using Common.WebApi.ArtificialIntelligence;
-using Common.WebApi.ArtificialIntelligence.Model.Request;
-using Common.WebApi.ArtificialIntelligence.Model.Common;
 
 namespace LogicApi.BusinessLogic.Authentication;
 /// <summary>
@@ -38,7 +35,6 @@ public class LoginHandler(
     /// <returns></returns>
     public override async Task<LoginResponse> Handle(LoginRequest request, CancellationToken cancellationToken)
     {
-         
         using (unitOfWork)
         {
             var decodeUsername = request.Username.Decode();
@@ -84,6 +80,7 @@ public class LoginHandler(
                 ?? throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo obtener el DeviceId del contexto.");
             var device = await unitOfWork.DeviceRepository.GetByFirstOrDefaultAsync(
                 where => where.UserGuid == user.Guid && where.DeviceId == deviceGuid).ConfigureAwait(false);
+
             device ??= await unitOfWork.DeviceRepository.AddAsync(new Device
             {
                 Guid = Guid.NewGuid(),
@@ -94,6 +91,7 @@ public class LoginHandler(
                 Brand = request.ContextRequest?.Headers?.Brand ?? "Unknown",
                 RegisterDate = clock.Now(),
             }).ConfigureAwait(false);
+
 
             await EnsureOwnAccountsAsBeneficiariesAsync(user, unitOfWork, cancellationToken).ConfigureAwait(false);
 

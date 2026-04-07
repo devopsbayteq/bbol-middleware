@@ -13,11 +13,9 @@ public class ValidateTransactionAmountHandler(
 {
     public override Task<ValidateTransactionAmountResponse> Handle(ValidateTransactionAmountRequest request, CancellationToken cancellationToken)
     {
-        var isValid = request.Amount > 20m;
-
         return Task.FromResult(new ValidateTransactionAmountResponse
         {
-            IsValid = isValid
+            IsValid = false
         });
     }
 }

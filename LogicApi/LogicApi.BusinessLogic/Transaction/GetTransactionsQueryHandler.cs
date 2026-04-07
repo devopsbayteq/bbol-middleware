@@ -52,7 +52,7 @@ public class GetTransactionsQueryHandler(
                 && (!request.MaxAmount.HasValue || where.AbsoluteAmount <= request.MaxAmount.Value)
                 && (!request.MinAmount.HasValue || where.AbsoluteAmount >= request.MinAmount.Value)
                 && (string.IsNullOrEmpty(searchTextNormalized) || where.NormalizedDescription.Contains(searchTextNormalized)),
-                orderBy => orderBy.Id,
+                orderBy => orderBy.RegisterDate,
                 OrderByType.Desc
         ).ConfigureAwait(false);
 

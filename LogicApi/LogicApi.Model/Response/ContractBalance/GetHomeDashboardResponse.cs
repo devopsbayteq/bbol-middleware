@@ -3,6 +3,7 @@ using Common.WebApi.Extensions;
 using Common.WebApi.Models.AppSettings;
 using LogicApi.Model.Enums;
 using LogicApi.Model.Response.Beneficiary;
+using LogicApi.Model.Response.Transaction;
 
 namespace LogicApi.Model.Response.ContractBalance;
 
@@ -15,6 +16,11 @@ public class GetHomeDashboardResponse
     /// Balance total de cuentas del usuario
     /// </summary>
     public decimal TotalBalance { get; set; }
+
+    /// <summary>
+    /// Actividades frecuentes
+    /// </summary>
+    public List<TransactionItem> RecentTransactions { get; set; } = [];
 
     /// <summary>
     /// Banners

@@ -5,6 +5,7 @@ using Common.WebApi.Models.AppSettings;
 using LogicApi.Model.Enums;
 using LogicApi.Model.Request.Beneficiary;
 using LogicApi.Model.Request.ContractBalance;
+using LogicApi.Model.Request.Transaction;
 using LogicApi.Model.Response.ContractBalance;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -48,8 +49,17 @@ public class GetHomeDashboardHandler(
         var investmentTypeIcons = options.Value.InvestmentTypeIcons;
         var frequentPaymentTypeIcons = options.Value.FrequentPaymentTypeIcons;
         var beneficiaryAccountsDictionary = beneficiaryAccounts.Contacts.ToDictionary(x => x.BeneficiaryAccountNumber);
+        
+        var recentTransactions = await mediator.Send(new GetTransactionsQueryRequest
+        {
+            ContextRequest = request.ContextRequest,
+            PageSize = 3,
+            PageNumber = 1,
+            AccountGuid = userAccounts.FirstOrDefault()?.Guid ?? throw new CustomException(MessageCodes.UserContextNotFound, "No se pudo resolver la cuenta del usuario."),
+        }, cancellationToken).ConfigureAwait(false);
         var response = new GetHomeDashboardResponse
         {
+            RecentTransactions = [.. recentTransactions.Items],
             HomeDashboardIcons = icons,
             Banners = [.. options.Value.HomeDashboardBanners.Select(x => new BannerItem()
             {

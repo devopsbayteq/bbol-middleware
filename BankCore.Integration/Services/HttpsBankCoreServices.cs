@@ -30,7 +30,7 @@ internal sealed class HttpsBankCoreServices(
         => PostAsync<ValidateUserPasswordRequest, ValidateUserPasswordResponse>("v1/adm-tarjeta/valida-clave-usuarios", request, cancellationToken, false);
 
     public Task<TransferBetweenAccountsResponse> TransferBetweenAccountsAsync(TransferBetweenAccountsRequest request, CancellationToken cancellationToken = default)
-        => PostAsync<TransferBetweenAccountsRequest, TransferBetweenAccountsResponse>("v1/adm-tarjeta/transferencias-entre-cuentas", request, cancellationToken);
+        => PostAsync<TransferBetweenAccountsRequest, TransferBetweenAccountsResponse>("v1/adm-tarjeta/transferencias-entre-cuentas", request, cancellationToken, true);
 
     private async Task<TResponse> PostAsync<TRequest, TResponse>(
         string relativePath,

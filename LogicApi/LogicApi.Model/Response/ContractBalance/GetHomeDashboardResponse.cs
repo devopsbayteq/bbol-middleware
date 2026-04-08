@@ -97,6 +97,7 @@ public class HomeAccountItem
     [IgnoreSensible]
     public Guid AccountGuid { get; set; }
     public string MaskedAccountNumber { get; set; } = string.Empty;
+    public string MaskedAccountHome { get; set; }
     public AccountType AccountType { get; set; }
     public string AccountTypeLabel => AccountType.GetEnumMember();
     public decimal Balance { get; set; }

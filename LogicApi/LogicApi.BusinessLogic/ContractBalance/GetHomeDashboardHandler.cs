@@ -82,6 +82,7 @@ public class GetHomeDashboardHandler(
                     AccountTypeIcons = accountTypeIcons,
                     AccountGuid = account.Guid,
                     MaskedAccountNumber = account.AccountNumber,
+                    MaskedAccountHome = MaskAccountNumber(account.AccountNumber),
                     AccountType = (AccountType)account.AccountType,
                     Balance = balanceByAccount.TryGetValue(account.Guid, out var balance) ? balance : 0m,
                     Beneficiary = beneficiaryAccountsDictionary.FirstOrDefaultValue(account.AccountNumber),
@@ -92,7 +93,7 @@ public class GetHomeDashboardHandler(
                 new()
                 {
                     CreditCardTypeIcons = creditCardTypeIcons,
-                    MaskedCardNumber = "**** **** **** 1245",
+                    MaskedCardNumber = "4454**** 9491",
                     TotalDue = 280.73m,
                     MaxPaymentDate = DateTime.UtcNow.Date.AddDays(12)
                 }
@@ -102,7 +103,7 @@ public class GetHomeDashboardHandler(
                 new()
                 {
                     LoanTypeIcons = loanTypeIcons,
-                    LoanGuid = "***** 678",
+                    LoanGuid = "137*****",
                     OutstandingBalance = 7800.10m,
                     NextInstallmentAmount = 230.50m,
                     NextInstallmentDate = DateTime.UtcNow.Date.AddDays(15)
@@ -130,6 +131,20 @@ public class GetHomeDashboardHandler(
         response.TotalBalance = response.Accounts.Sum(x => x.Balance);
 
         return response;
+    }
+
+    /// <summary>
+    /// Máscara de cuenta bancaria
+    /// </summary>
+    /// <param name="accountNumber"></param>
+    /// <returns></returns>
+    protected static string MaskAccountHome(string accountNumber)
+    {
+        if (string.IsNullOrWhiteSpace(accountNumber))
+            return string.Empty;
+
+        var lastThree = accountNumber.Length >= 3 ? accountNumber[^3..] : accountNumber;
+        return $"**** *{lastThree}";
     }
 
 }

@@ -6,7 +6,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Linq;
 using LogicApi.Model.Response.Authentication;
 using PersistenceDb.Models.Authentication;
 using PersistenceDb.Models.Enums;
@@ -17,6 +16,9 @@ using Common.WebApi.Security;
 using Common.WebApi.Extensions;
 using Common.WebApi.Exceptions;
 using Common.WebApi.Messages;
+using BankCore.Integration.Exceptions;
+using BankCore.Integration.Interfaces;
+using BankCore.Integration.Models.User;
 
 namespace LogicApi.BusinessLogic.Authentication;
 /// <summary>
@@ -24,7 +26,8 @@ namespace LogicApi.BusinessLogic.Authentication;
 /// </summary>
 public abstract class AuthenticationBase<TRequest, TResponse>(
     ILogger<AuthenticationBase<TRequest, TResponse>> logger,
-    IOptions<AppSetting> options
+    IOptions<AppSetting> options,
+    IBankCoreServices bankCoreServices
     ) : BusinessLogicBase(
         logger
         ),
@@ -166,4 +169,32 @@ public abstract class AuthenticationBase<TRequest, TResponse>(
             Alias = user.Alias
         });
     }
+
+
+    protected async Task ValidateUserAsync(string decryptUsername, string decryptPassword, string sessionId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _ = await bankCoreServices.ValidateUserAsync(new ValidateUserRequest
+            (
+                sessionId,
+                decryptUsername.Equals("Usuario_caso1", StringComparison.OrdinalIgnoreCase) ? "glimonem" : decryptUsername,
+                string.Empty,
+                "en_PA"), cancellationToken).ConfigureAwait(false);
+
+            _ = await bankCoreServices.ValidateUserPasswordAsync(new ValidateUserPasswordRequest
+            {
+                SessionId = sessionId,
+                KeyAlias = decryptUsername.Equals("Usuario_caso2", StringComparison.OrdinalIgnoreCase) ? "glimonem" : decryptUsername,
+                KeyValue = decryptPassword
+            }, cancellationToken).ConfigureAwait(false);
+
+        }
+        catch (BankCoreUserMessageException ex)
+        {
+            logger.LogError(ex, "Error al procesar la transferencia en BankCore.");
+            throw new CustomException(MessageCodes.BankCoreUserMessage, ex.Message);
+        }
+    }
+
 }

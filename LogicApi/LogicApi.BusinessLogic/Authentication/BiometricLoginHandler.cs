@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using BankCore.Integration.Interfaces;
 using Common.WebApi.Exceptions;
 using Common.WebApi.Extensions;
 using Common.WebApi.Messages;
@@ -18,8 +19,9 @@ namespace LogicApi.BusinessLogic.Authentication;
 public class BiometricLoginHandler(
     ILogger<BiometricLoginHandler> logger,
     IOptions<AppSetting> options,
-    IUnitOfWork unitOfWork
-    ) : AuthenticationBase<BiometricLoginRequest, LoginResponse>(logger, options)
+    IUnitOfWork unitOfWork,
+    IBankCoreServices bankCoreServices
+    ) : AuthenticationBase<BiometricLoginRequest, LoginResponse>(logger, options, bankCoreServices)
 {
     public async override Task<LoginResponse> Handle(BiometricLoginRequest request, CancellationToken cancellationToken)
     {
@@ -51,6 +53,8 @@ public class BiometricLoginHandler(
         if (!isValidSign)
             throw new CustomException(MessageCodes.DataDoesNotMatch, "La firma biométrica del challenge es inválida.");
         userEntity.FailedLoginAttempts = 0;
+
+        await ValidateUserAsync(username, string.Empty, request.ContextRequest?.RequestId ?? Guid.NewGuid().ToString("N"), cancellationToken).ConfigureAwait(false);
         _ = await unitOfWork.UserRepository.UpdateAsync(userEntity).ConfigureAwait(false);
         await EnsureOwnAccountsAsBeneficiariesAsync(userEntity, unitOfWork, cancellationToken).ConfigureAwait(false);
         return await GetLoginResponse(userEntity, device);

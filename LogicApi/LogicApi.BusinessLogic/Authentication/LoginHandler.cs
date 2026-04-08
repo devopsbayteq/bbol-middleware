@@ -13,6 +13,7 @@ using Common.WebApi.Messages;
 using PersistenceDb.Models.Authentication;
 using PersistenceDb.Repository.Interfaces.UnitOfWork;
 using Common.WebApi.Clock;
+using BankCore.Integration.Exceptions;
 
 namespace LogicApi.BusinessLogic.Authentication;
 /// <summary>
@@ -24,7 +25,7 @@ public class LoginHandler(
     IClock clock,
     IUnitOfWork unitOfWork,
     IBankCoreServices bankCoreServices
-        ) : AuthenticationBase<LoginRequest, LoginResponse>(logger, options)
+        ) : AuthenticationBase<LoginRequest, LoginResponse>(logger, options, bankCoreServices)
 {
 
     /// <summary>
@@ -59,19 +60,7 @@ public class LoginHandler(
                 throw new CustomException(MessageCodes.InvalidCredentials, "Contraseña incorrecta.");
             }
 
-            _ = await bankCoreServices.ValidateUserAsync(new ValidateUserRequest
-            (
-                sessionId,
-                decryptUsername,
-                string.Empty,
-                "en_PA"), cancellationToken).ConfigureAwait(false);
-
-            _ = await bankCoreServices.ValidateUserPasswordAsync(new ValidateUserPasswordRequest
-            {
-                SessionId = sessionId,
-                KeyAlias = decryptUsername,
-                KeyValue = decryptPassword
-            }, cancellationToken).ConfigureAwait(false);
+            await ValidateUserAsync(decryptUsername, decryptPassword, sessionId, cancellationToken).ConfigureAwait(false);
 
             user.FailedLoginAttempts = 0;
             _ = await unitOfWork.UserRepository.UpdateAsync(user).ConfigureAwait(false);

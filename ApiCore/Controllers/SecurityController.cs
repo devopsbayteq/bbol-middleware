@@ -102,4 +102,24 @@ public class SecurityController(IMediator mediator) : ApiControllerBase(mediator
     [ProducesResponseType(typeof(GenericResponse<RsaEncryptTextResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> RsaEncrypt([FromBody] RsaEncryptTextRequest request)
         => Success(await Mediator.Send(request).ConfigureAwait(false));
+
+    /// <summary>
+    /// Encripta texto con AES
+    /// </summary>
+    /// <param name="request">Filtros de consulta</param>
+    /// <returns>Texto encriptado</returns>
+    [HttpPost("aes/encrypt")]
+    [ProducesResponseType(typeof(GenericResponse<AesEncryptTextResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AesEncryptText([FromBody] AesEncryptTextRequest request)
+        => Success(await Mediator.Send(request).ConfigureAwait(false));
+
+    /// <summary>
+    /// Encripta texto con AES
+    /// </summary>
+    /// <param name="request">Filtros de consulta</param>
+    /// <returns>Texto encriptado</returns>
+    [HttpPost("aes/decrypt")]
+    [ProducesResponseType(typeof(GenericResponse<AesDecryptTextResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AesDecryptText([FromBody] AesDecryptTextRequest request)
+        => Success(await Mediator.Send(request).ConfigureAwait(false));
 }

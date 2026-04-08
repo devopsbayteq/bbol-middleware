@@ -1,7 +1,9 @@
 using ApiCore.Attributes;
 using ApiCore.Models;
 using Asp.Versioning;
+using LogicApi.Model.Request.Security;
 using LogicApi.Model.Request.Transaction;
+using LogicApi.Model.Response.Security;
 using LogicApi.Model.Response.Transaction;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -46,4 +48,6 @@ public class TransactionController(IMediator mediator) : ApiControllerBase(media
     [ProducesResponseType(typeof(GenericResponse<GetTransactionsQueryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions([FromQuery] GetTransactionsQueryRequest request)
         => Success(await Mediator.Send(request).ConfigureAwait(false));
+
+  
 }

@@ -87,6 +87,7 @@ public class BannerItem
     public string ButtonText { get; set; } = string.Empty;
     public string ButtonLink { get; set; } = string.Empty;
     public string Landscape { get; set; }
+    public int DurationMilliseconds { get; set; }
 }
 
 /// <summary>

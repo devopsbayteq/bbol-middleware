@@ -75,7 +75,8 @@ public class GetHomeDashboardHandler(
                 Text = x.Text,
                 ButtonText = x.ButtonText,
                 ButtonLink = x.ButtonLink,
-                Landscape = x.Landscape
+                Landscape = x.Landscape,
+                DurationMilliseconds = x.DurationMilliseconds
             })],
             Accounts = [.. userAccounts.Select((account, index) => new HomeAccountItem
                 {

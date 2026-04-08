@@ -40,7 +40,7 @@ public class ValidateIntegrityMiddleware(
                 var nounce = $"{httpContext.Request.Method}||{queryString}||{hashBody}||{contextRequest.Headers?.Time}";
                 //Encripta
                 var secretDecode = contextRequest.Headers.Secret.Decode();
-                var secretDecrypt = RsaSecurity.Decrypt(_appSettings.RsaSecurity.ServerCertificateBase64PrivateKey, secretDecode);
+                var secretDecrypt = RsaSecurity.Decrypt(_appSettings.RsaSecurity.ServerBase64PrivateKey, secretDecode);
                 //Calcula el hash de integridad
                 var hmacToken = nounce.ToSha256(secretDecrypt);
                 //Comparar el hash

@@ -92,7 +92,7 @@ public class GetHomeDashboardHandler(
                 new()
                 {
                     LoanTypeIcons = loanTypeIcons,
-                    LoanGuid = Guid.NewGuid().ToString(),
+                    LoanGuid = "***** 678",
                     OutstandingBalance = 7800.10m,
                     NextInstallmentAmount = 230.50m,
                     NextInstallmentDate = DateTime.UtcNow.Date.AddDays(15)
@@ -103,8 +103,8 @@ public class GetHomeDashboardHandler(
                 new()
                 {
                     InvestmentTypeIcons = investmentTypeIcons,
-                    InvestmentGuid = Guid.NewGuid().ToString(),
-                    ProductName = "Fondo Conservador",
+                    InvestmentGuid = "137********",
+                    ProductName = "Desposito a plazo fijo",
                     CurrentValue = 3540.90m,
                     Currency = "USD"
                 }

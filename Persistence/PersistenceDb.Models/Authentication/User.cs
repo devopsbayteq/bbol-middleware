@@ -66,8 +66,6 @@ public class User
     [Column("USR_PRIMER_APELLIDO")]
     public string Surname { get; set; }
 
-
-    [Required]
     [Column("USR_ALIAS")]
     [EncryptColumn]
     public string Alias { get; set; }

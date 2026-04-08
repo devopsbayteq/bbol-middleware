@@ -49,7 +49,7 @@ public class GetHomeDashboardHandler(
         var investmentTypeIcons = options.Value.InvestmentTypeIcons;
         var frequentPaymentTypeIcons = options.Value.FrequentPaymentTypeIcons;
         var beneficiaryAccountsDictionary = beneficiaryAccounts.Contacts.ToDictionary(x => x.BeneficiaryAccountNumber);
-        
+
         var recentTransactions = await mediator.Send(new GetTransactionsQueryRequest
         {
             ContextRequest = request.ContextRequest,
@@ -57,6 +57,15 @@ public class GetHomeDashboardHandler(
             PageNumber = 1,
             AccountGuid = userAccounts.FirstOrDefault()?.Guid ?? throw new CustomException(MessageCodes.UserContextNotFound, "No se pudo resolver la cuenta del usuario."),
         }, cancellationToken).ConfigureAwait(false);
+
+        var listAccountAlias = new[]{
+            "Gastos",
+            "Departamento",
+            "Emergencias",
+            "Universidad",
+            "Cuentas bancarias",
+        };
+
         var response = new GetHomeDashboardResponse
         {
             RecentTransactions = [.. recentTransactions.Items],
@@ -68,14 +77,15 @@ public class GetHomeDashboardHandler(
                 ButtonLink = x.ButtonLink,
                 Landscape = x.Landscape
             })],
-            Accounts = [.. userAccounts.Select(account => new HomeAccountItem
+            Accounts = [.. userAccounts.Select((account, index) => new HomeAccountItem
                 {
                     AccountTypeIcons = accountTypeIcons,
                     AccountGuid = account.Guid,
                     MaskedAccountNumber = account.AccountNumber,
                     AccountType = (AccountType)account.AccountType,
                     Balance = balanceByAccount.TryGetValue(account.Guid, out var balance) ? balance : 0m,
-                    Beneficiary = beneficiaryAccountsDictionary.FirstOrDefaultValue(account.AccountNumber)
+                    Beneficiary = beneficiaryAccountsDictionary.FirstOrDefaultValue(account.AccountNumber),
+                    AccountAlias = listAccountAlias[index]
                 })],
             CreditCards =
             [

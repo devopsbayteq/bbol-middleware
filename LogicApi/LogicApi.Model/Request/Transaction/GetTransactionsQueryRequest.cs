@@ -31,7 +31,7 @@ public class GetTransactionsQueryRequest : IApiBaseRequest<GetTransactionsQueryR
     /// <summary>
     /// Tipo de transaccion (opcional)
     /// </summary>
-    public TransactionType? TransactionType { get; set; }
+    public List<TransactionType> TransactionTypes { get; set; } = [];
 
     /// <summary>
     /// Monto maximo (opcional)

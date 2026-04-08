@@ -1,4 +1,5 @@
 using System.Text;
+using Common.Utils.Extensions;
 using LogicApi.Model.Request.Transaction;
 using LogicApi.Model.Response.Transaction;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,12 @@ public class GetTransactionsQueryHandler(
         var dateFrom = request.DateFrom?.Date;
         var dateTo = request.DateTo?.AddDays(1).Date;
         var searchTextNormalized = NormalizeText(request.TextSearch);
+        var transactionTypes = request.TransactionTypes?.Select(x => (TransactionType)x).ToList();
+        // Si request.TransactionTypes es null, genera el listado de todos los TransactionType
+        if (request.TransactionTypes.IsNullOrEmpty())
+            transactionTypes = [.. Enum.GetValues<TransactionType>()];
+
+
         var transactions = await unitOfWork.TransactionRepository.GetPaginatorGenericAsync(
             request.PageSize,
             request.PageNumber,
@@ -48,7 +55,7 @@ public class GetTransactionsQueryHandler(
             where => where.AccountGuid == request.AccountGuid
                 && (!dateFrom.HasValue || where.RegisterDate >= dateFrom.Value)
                 && (!dateTo.HasValue || where.RegisterDate <= dateTo.Value)
-                && (!request.TransactionType.HasValue || where.TransactionType == (byte)request.TransactionType.Value)
+                && transactionTypes.Contains((TransactionType)where.TransactionType)
                 && (!request.MaxAmount.HasValue || where.AbsoluteAmount <= request.MaxAmount.Value)
                 && (!request.MinAmount.HasValue || where.AbsoluteAmount >= request.MinAmount.Value)
                 && (string.IsNullOrEmpty(searchTextNormalized) || where.NormalizedDescription.Contains(searchTextNormalized)),

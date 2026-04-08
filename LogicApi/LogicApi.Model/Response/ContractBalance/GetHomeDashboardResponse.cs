@@ -113,6 +113,12 @@ public class HomeAccountItem
     /// <value></value>
     public List<IconModel> AccountTypeIcons { get; set; } = [];
 
+    /// <summary>
+    /// Nombre del producto
+    /// </summary>
+    /// <value></value>
+    public string AccountAlias { get; set; } = string.Empty;
+
 }
 
 /// <summary>

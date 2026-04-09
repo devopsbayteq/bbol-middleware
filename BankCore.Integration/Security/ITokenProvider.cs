@@ -1,6 +1,6 @@
 namespace BankCore.Integration.Security;
 
-internal interface ITokenProvider
+public interface ITokenProvider
 {
     Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default);
 }

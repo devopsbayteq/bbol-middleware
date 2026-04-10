@@ -35,20 +35,30 @@ public class ValidateIntegrityMiddleware(
             }
             catch (CustomException custom)
             {
-                if (Logger.IsEnabled(LogLevel.Error))
-                    Logger.LogError(custom, "{@Message}", custom.Message);
-                if (_appSettings.IntegrityValidation.ThrowExceptionIfError)
-                    throw;
+                CatchCustomException(custom);
             }
             catch (Exception ex)
             {
-                if (Logger.IsEnabled(LogLevel.Error))
-                    Logger.LogError(ex, "{@Message}", ex.Message);
+                CatchException(ex);
                 if (_appSettings.IntegrityValidation.ThrowExceptionIfError)
-                    throw new CustomException(MessageCodes.SystemError, "Error al validar la integridad de datos");
+                    throw;
             }
         }
         await Next(httpContext).ConfigureAwait(false);
+    }
+
+    private void CatchException(Exception ex)
+    {
+        if (Logger.IsEnabled(LogLevel.Error))
+            Logger.LogError(ex, "{@Message}", ex.Message);
+        if (_appSettings.IntegrityValidation.ThrowExceptionIfError)
+            throw new CustomException(MessageCodes.SystemError, "Error al validar la integridad de datos");
+    }
+
+    private void CatchCustomException(CustomException custom)
+    {
+        if (Logger.IsEnabled(LogLevel.Error))
+            Logger.LogError(custom, "{@Message}", custom.Message);
     }
 
     private async Task ValidationAsync(HttpContext httpContext, ContextRequest contextRequest)

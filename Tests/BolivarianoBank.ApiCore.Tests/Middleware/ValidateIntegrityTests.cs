@@ -20,8 +20,8 @@ public partial class MiddlewareTest
         {
             Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.SystemError));
-            Assert.That(response.Content, Does.Contain("Error al validar la integridad de datos"));
+            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.AuthorizationGeneric));
+            Assert.That(response.Content, Does.Contain("No esta presente el header X-Content"));
         });
     }
 
@@ -37,8 +37,8 @@ public partial class MiddlewareTest
         {
             Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.SystemError));
-            Assert.That(response.Content, Does.Contain("Error al validar la integridad de datos"));
+            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.AuthorizationGeneric));
+            Assert.That(response.Content, Does.Contain("No esta presente el header X-Secret"));
         });
     }
 

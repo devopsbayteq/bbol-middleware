@@ -55,9 +55,10 @@ public class GetHomeDashboardTests : BaseTests
 
         Options.Setup(o => o.Value).Returns(appSettings);
 
-        // Setup default mediator responses
+        // Setup default mediator responses - will be overridden in individual tests if needed
         Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetBeneficiaryContactsResponse { Contacts = [] });
+            .ReturnsAsync((GetBeneficiaryContactsRequest req, CancellationToken ct) =>
+                new GetBeneficiaryContactsResponse { Contacts = [] });
 
         Mediator.Setup(m => m.Send(It.IsAny<GetTransactionsQueryRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GetTransactionsQueryResponse { Items = new List<TransactionItem>() });
@@ -118,6 +119,7 @@ public class GetHomeDashboardTests : BaseTests
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
         var accountBalance = 1500.50m;
+        var accountNumber = "1234567890";
 
         var request = new GetHomeDashboardRequest
         {
@@ -135,7 +137,7 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = accountGuid,
-                AccountNumber = "1234567890",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -145,6 +147,21 @@ public class GetHomeDashboardTests : BaseTests
         {
             { accountGuid, accountBalance }
         };
+
+        // Setup beneficiary contacts matching account numbers
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts =
+                [
+                    new()
+                    {
+                        BeneficiaryAccountNumber = accountNumber,
+                        ContactName = "Mi Cuenta",
+                        BankName = "Banco Bolivariano"
+                    }
+                ]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -159,10 +176,16 @@ public class GetHomeDashboardTests : BaseTests
             Assert.That(response, Is.Not.Null);
             Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.Accounts[0].AccountGuid, Is.EqualTo(accountGuid));
-            Assert.That(response.Accounts[0].MaskedAccountNumber, Is.EqualTo("******7890"));
+            Assert.That(response.Accounts[0].MaskedAccountNumber, Is.EqualTo(accountNumber));
             Assert.That(response.Accounts[0].AccountType, Is.EqualTo(LogicApi.Model.Enums.AccountType.Savings));
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(accountBalance));
+            Assert.That(response.Accounts[0].AccountAlias, Is.EqualTo("Gastos"));
             Assert.That(response.TotalBalance, Is.EqualTo(accountBalance));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Investments, Has.Count.EqualTo(1));
+            Assert.That(response.FrequentPayments, Has.Count.EqualTo(2));
+            Assert.That(response.RecentTransactions, Is.Not.Null);
         });
     }
 
@@ -172,6 +195,7 @@ public class GetHomeDashboardTests : BaseTests
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
         var accountBalance = 2750.75m;
+        var accountNumber = "9876543210";
 
         var request = new GetHomeDashboardRequest
         {
@@ -189,7 +213,7 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = accountGuid,
-                AccountNumber = "9876543210",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Checking,
                 UserId = userGuid
             }
@@ -199,6 +223,21 @@ public class GetHomeDashboardTests : BaseTests
         {
             { accountGuid, accountBalance }
         };
+
+        // Setup beneficiary contacts
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts =
+                [
+                    new()
+                    {
+                        BeneficiaryAccountNumber = accountNumber,
+                        ContactName = "Cuenta Corriente",
+                        BankName = "Banco Bolivariano"
+                    }
+                ]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -214,7 +253,11 @@ public class GetHomeDashboardTests : BaseTests
             Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.Accounts[0].AccountType, Is.EqualTo(LogicApi.Model.Enums.AccountType.Checking));
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(accountBalance));
+            Assert.That(response.Accounts[0].AccountAlias, Is.EqualTo("Gastos"));
             Assert.That(response.TotalBalance, Is.EqualTo(accountBalance));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Investments, Has.Count.EqualTo(1));
         });
     }
 
@@ -228,6 +271,9 @@ public class GetHomeDashboardTests : BaseTests
         var balance1 = 1000m;
         var balance2 = 2500m;
         var balance3 = 500m;
+        var accountNumber1 = "1111111111";
+        var accountNumber2 = "2222222222";
+        var accountNumber3 = "3333333333";
 
         var request = new GetHomeDashboardRequest
         {
@@ -245,21 +291,21 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = account1Guid,
-                AccountNumber = "1111111111",
+                AccountNumber = accountNumber1,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             },
             new ()
             {
                 Guid = account2Guid,
-                AccountNumber = "2222222222",
+                AccountNumber = accountNumber2,
                 AccountType = AccountType.Checking,
                 UserId = userGuid
             },
             new ()
             {
                 Guid = account3Guid,
-                AccountNumber = "3333333333",
+                AccountNumber = accountNumber3,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -271,6 +317,18 @@ public class GetHomeDashboardTests : BaseTests
             { account2Guid, balance2 },
             { account3Guid, balance3 }
         };
+
+        // Setup beneficiary contacts for all accounts
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts =
+                [
+                    new() { BeneficiaryAccountNumber = accountNumber1, ContactName = "Cuenta 1" },
+                    new() { BeneficiaryAccountNumber = accountNumber2, ContactName = "Cuenta 2" },
+                    new() { BeneficiaryAccountNumber = accountNumber3, ContactName = "Cuenta 3" }
+                ]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -285,9 +343,12 @@ public class GetHomeDashboardTests : BaseTests
             Assert.That(response, Is.Not.Null);
             Assert.That(response.Accounts, Has.Count.EqualTo(3));
             Assert.That(response.TotalBalance, Is.EqualTo(balance1 + balance2 + balance3));
-            Assert.That(response.Accounts[0].MaskedAccountNumber, Is.EqualTo("******1111"));
-            Assert.That(response.Accounts[1].MaskedAccountNumber, Is.EqualTo("******2222"));
-            Assert.That(response.Accounts[2].MaskedAccountNumber, Is.EqualTo("******3333"));
+            Assert.That(response.Accounts[0].MaskedAccountNumber, Is.EqualTo(accountNumber1));
+            Assert.That(response.Accounts[1].MaskedAccountNumber, Is.EqualTo(accountNumber2));
+            Assert.That(response.Accounts[2].MaskedAccountNumber, Is.EqualTo(accountNumber3));
+            Assert.That(response.Accounts[0].AccountAlias, Is.EqualTo("Gastos"));
+            Assert.That(response.Accounts[1].AccountAlias, Is.EqualTo("Departamento"));
+            Assert.That(response.Accounts[2].AccountAlias, Is.EqualTo("Emergencias"));
         });
     }
 
@@ -296,6 +357,7 @@ public class GetHomeDashboardTests : BaseTests
     {
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
+        var accountNumber = "5555555555";
 
         var request = new GetHomeDashboardRequest
         {
@@ -313,7 +375,7 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = accountGuid,
-                AccountNumber = "5555555555",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -323,6 +385,12 @@ public class GetHomeDashboardTests : BaseTests
         {
             { accountGuid, 0m }
         };
+
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts = [new() { BeneficiaryAccountNumber = accountNumber, ContactName = "Cuenta Zero" }]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -335,8 +403,12 @@ public class GetHomeDashboardTests : BaseTests
         Assert.Multiple(() =>
         {
             Assert.That(response, Is.Not.Null);
+            Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(0m));
             Assert.That(response.TotalBalance, Is.EqualTo(0m));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Investments, Has.Count.EqualTo(1));
         });
     }
 
@@ -346,6 +418,7 @@ public class GetHomeDashboardTests : BaseTests
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
         var negativeBalance = -250.50m;
+        var accountNumber = "6666666666";
 
         var request = new GetHomeDashboardRequest
         {
@@ -363,7 +436,7 @@ public class GetHomeDashboardTests : BaseTests
             new()
             {
                 Guid = accountGuid,
-                AccountNumber = "6666666666",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Checking,
                 UserId = userGuid
             }
@@ -374,6 +447,12 @@ public class GetHomeDashboardTests : BaseTests
             { accountGuid, negativeBalance }
         };
 
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts = [new() { BeneficiaryAccountNumber = accountNumber, ContactName = "Cuenta Negativa" }]
+            });
+
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
 
@@ -385,8 +464,11 @@ public class GetHomeDashboardTests : BaseTests
         Assert.Multiple(() =>
         {
             Assert.That(response, Is.Not.Null);
+            Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(negativeBalance));
             Assert.That(response.TotalBalance, Is.EqualTo(negativeBalance));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
         });
     }
 
@@ -395,6 +477,7 @@ public class GetHomeDashboardTests : BaseTests
     {
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
+        var accountNumber = "7777777777";
 
         var request = new GetHomeDashboardRequest
         {
@@ -412,7 +495,7 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = accountGuid,
-                AccountNumber = "7777777777",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -420,6 +503,12 @@ public class GetHomeDashboardTests : BaseTests
 
         // Balance dictionary doesn't contain the account
         var balances = new Dictionary<Guid, decimal>();
+
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts = [new() { BeneficiaryAccountNumber = accountNumber, ContactName = "Sin Balance" }]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -432,8 +521,12 @@ public class GetHomeDashboardTests : BaseTests
         Assert.Multiple(() =>
         {
             Assert.That(response, Is.Not.Null);
+            Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(0m));
             Assert.That(response.TotalBalance, Is.EqualTo(0m));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Investments, Has.Count.EqualTo(1));
         });
     }
 
@@ -442,6 +535,7 @@ public class GetHomeDashboardTests : BaseTests
     {
         var userGuid = Guid.NewGuid();
         var accountGuid = Guid.NewGuid();
+        var accountNumber = "8888888888";
 
         var request = new GetHomeDashboardRequest
         {
@@ -459,7 +553,7 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = accountGuid,
-                AccountNumber = "8888888888",
+                AccountNumber = accountNumber,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -469,6 +563,12 @@ public class GetHomeDashboardTests : BaseTests
         {
             { accountGuid, 1000m }
         };
+
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts = [new() { BeneficiaryAccountNumber = accountNumber, ContactName = "Todos los Productos" }]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -482,15 +582,26 @@ public class GetHomeDashboardTests : BaseTests
         {
             Assert.That(response, Is.Not.Null);
             Assert.That(response.Accounts, Is.Not.Empty);
+            Assert.That(response.Accounts, Has.Count.EqualTo(1));
             Assert.That(response.CreditCards, Is.Not.Empty);
             Assert.That(response.CreditCards, Has.Count.EqualTo(1));
             Assert.That(response.CreditCards[0].MaskedCardNumber, Is.EqualTo("**** **** **** 1245"));
+            Assert.That(response.CreditCards[0].TotalDue, Is.EqualTo(280.73m));
             Assert.That(response.Loans, Is.Not.Empty);
             Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Loans[0].LoanGuid, Is.EqualTo("***** 678"));
+            Assert.That(response.Loans[0].OutstandingBalance, Is.EqualTo(7800.10m));
             Assert.That(response.Investments, Is.Not.Empty);
             Assert.That(response.Investments, Has.Count.EqualTo(1));
+            Assert.That(response.Investments[0].InvestmentGuid, Is.EqualTo("137********"));
+            Assert.That(response.Investments[0].CurrentValue, Is.EqualTo(3540.90m));
             Assert.That(response.FrequentPayments, Is.Not.Empty);
             Assert.That(response.FrequentPayments, Has.Count.EqualTo(2));
+            Assert.That(response.FrequentPayments[0].BeneficiaryName, Is.EqualTo("Payment 1"));
+            Assert.That(response.FrequentPayments[1].BeneficiaryName, Is.EqualTo("Payment 2"));
+            Assert.That(response.RecentTransactions, Is.Not.Null);
+            Assert.That(response.HomeDashboardIcons, Is.Not.Null);
+            Assert.That(response.Banners, Is.Not.Null);
         });
     }
 
@@ -504,6 +615,9 @@ public class GetHomeDashboardTests : BaseTests
         var balance1 = 5000m;
         var balance2 = -100m;
         var balance3 = 0m;
+        var accountNumber1 = "1234567890";
+        var accountNumber2 = "0987654321";
+        var accountNumber3 = "5555666677";
 
         var request = new GetHomeDashboardRequest
         {
@@ -521,21 +635,21 @@ public class GetHomeDashboardTests : BaseTests
             new ()
             {
                 Guid = account1Guid,
-                AccountNumber = "1234567890",
+                AccountNumber = accountNumber1,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             },
             new ()
             {
                 Guid = account2Guid,
-                AccountNumber = "0987654321",
+                AccountNumber = accountNumber2,
                 AccountType = AccountType.Checking,
                 UserId = userGuid
             },
             new ()
             {
                 Guid = account3Guid,
-                AccountNumber = "5555666677",
+                AccountNumber = accountNumber3,
                 AccountType = AccountType.Savings,
                 UserId = userGuid
             }
@@ -547,6 +661,17 @@ public class GetHomeDashboardTests : BaseTests
             { account2Guid, balance2 },
             { account3Guid, balance3 }
         };
+
+        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetBeneficiaryContactsResponse
+            {
+                Contacts =
+                [
+                    new() { BeneficiaryAccountNumber = accountNumber1, ContactName = "Cuenta Mix 1" },
+                    new() { BeneficiaryAccountNumber = accountNumber2, ContactName = "Cuenta Mix 2" },
+                    new() { BeneficiaryAccountNumber = accountNumber3, ContactName = "Cuenta Mix 3" }
+                ]
+            });
 
         UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
             .Returns(Task.FromResult<List<AccountUser>>(accounts));
@@ -565,6 +690,13 @@ public class GetHomeDashboardTests : BaseTests
             Assert.That(response.Accounts[0].Balance, Is.EqualTo(balance1));
             Assert.That(response.Accounts[1].Balance, Is.EqualTo(balance2));
             Assert.That(response.Accounts[2].Balance, Is.EqualTo(balance3));
+            Assert.That(response.Accounts[0].AccountAlias, Is.EqualTo("Gastos"));
+            Assert.That(response.Accounts[1].AccountAlias, Is.EqualTo("Departamento"));
+            Assert.That(response.Accounts[2].AccountAlias, Is.EqualTo("Emergencias"));
+            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
+            Assert.That(response.Loans, Has.Count.EqualTo(1));
+            Assert.That(response.Investments, Has.Count.EqualTo(1));
+            Assert.That(response.FrequentPayments, Has.Count.EqualTo(2));
         });
     }
 }

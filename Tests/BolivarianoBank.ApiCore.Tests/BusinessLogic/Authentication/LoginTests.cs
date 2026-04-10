@@ -167,6 +167,9 @@ public class LoginTests : BaseTests
     [Test]
     public async Task TL_06_LoginSuccessful()
     {
+        var userGuid = Guid.NewGuid();
+        var deviceGuid = Guid.NewGuid();
+        
         var request = new LoginRequest()
         {
             Username = Settings.UserMock,
@@ -175,30 +178,84 @@ public class LoginTests : BaseTests
             {
                 Headers = new()
                 {
-                    DeviceId = "DeviceId"
-                }
+                    DeviceId = "DeviceId",
+                    Model = "TestModel",
+                    Brand = "TestBrand"
+                },
+                RequestId = Guid.NewGuid().ToString("N")
             }
         };
 
+        // Setup Session settings
+        CoreSettings.Session = new()
+        {
+            SessionTimeSeconds = 1800,
+            InactivityTimeoutSeconds = 300
+        };
+
+        // Mock user retrieval
         UnitOfWork.Setup(u => u.UserRepository.GetByFirstOrDefaultAsync(It.IsAny<Expression<Func<User, bool>>>()))
             .Returns(Task.FromResult<User>(new User
             {
-                Guid = Guid.NewGuid(),
+                Guid = userGuid,
                 UserName = "UserName",
-                FirstName = "FirstName"
+                FirstName = "FirstName",
+                Surname = "LastName",
+                DocumentNumber = "1234567890",
+                Alias = "TestAlias",
+                FailedLoginAttempts = 0
             }));
 
+        // Mock user update (reset failed attempts)
+        UnitOfWork.Setup(u => u.UserRepository.UpdateAsync(It.IsAny<User>()))
+            .ReturnsAsync((User u) => u);
+
+        // Mock BankCore ValidateUser
+        Services.Setup(s => s.ValidateUserAsync(It.IsAny<BankCore.Integration.Models.User.ValidateUserRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BankCore.Integration.Models.User.ValidateUserResponse());
+
+        // Mock BankCore ValidateUserPassword
+        Services.Setup(s => s.ValidateUserPasswordAsync(It.IsAny<BankCore.Integration.Models.User.ValidateUserPasswordRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BankCore.Integration.Models.User.ValidateUserPasswordResponse());
+
+        // Mock device retrieval (device doesn't exist yet)
+        UnitOfWork.Setup(u => u.DeviceRepository.GetByFirstOrDefaultAsync(It.IsAny<Expression<Func<Device, bool>>>()))
+            .Returns(Task.FromResult<Device>(null!));
+
+        // Mock device creation
         UnitOfWork.Setup(u => u.DeviceRepository.AddAsync(It.IsAny<Device>()))
-            .Returns(Task.FromResult<Device>(new Device
+            .Returns(Task.FromResult( new Device
             {
-                DeviceId = Guid.NewGuid().ToString()
+                Guid = deviceGuid,
+                UserGuid = Guid.NewGuid(),
+                DeviceId = "",
+                Model = "",
+                Brand = "",
+                PlatformType = 0,
+                RegisterDate = DateTime.Now
             }));
+
+        // Mock Clock for device registration
+        Clock.Setup(c => c.Now()).Returns(DateTime.Now);
+
+        // Mock AccountUserRepository for EnsureOwnAccountsAsBeneficiariesAsync
+        UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<PersistenceDb.Models.Core.AccountUser, bool>>>()))
+            .ReturnsAsync(new List<PersistenceDb.Models.Core.AccountUser>());
+
+        // Mock BeneficiaryRepository for EnsureOwnAccountsAsBeneficiariesAsync
+        UnitOfWork.Setup(u => u.BeneficiaryRepository.GetByAsync(It.IsAny<Expression<Func<PersistenceDb.Models.Core.Beneficiary, bool>>>()))
+            .ReturnsAsync(new List<PersistenceDb.Models.Core.Beneficiary>());
 
         var response = await Handler.Handle(request, It.IsAny<CancellationToken>());
 
         Assert.Multiple(() =>
         {
             Assert.That(response, Is.Not.Null);
+            Assert.That(response.AccessToken, Is.Not.Null.And.Not.Empty);
+            Assert.That(response.FirstName, Is.EqualTo("FirstName"));
+            Assert.That(response.Alias, Is.EqualTo("TestAlias"));
+            Assert.That(response.SessionTimeSeconds, Is.EqualTo(1800));
+            Assert.That(response.InactivityTimeoutSeconds, Is.EqualTo(300));
         });
     }
 

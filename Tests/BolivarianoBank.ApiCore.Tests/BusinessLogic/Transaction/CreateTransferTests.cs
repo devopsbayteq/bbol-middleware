@@ -332,10 +332,6 @@ public class CreateTransferTests : BaseTests
                 ExternalIdentifier = transactionId
             }));
 
-        UnitOfWork.Setup(u => u.AccountUserRepository.GetByFirstOrDefaultAsync(It.Is<Expression<Func<AccountUser, bool>>>(
-            expr => expr.ToString().Contains("AccountNumber"))))
-            .Returns(Task.FromResult<AccountUser>(null!));
-
         var response = await Handler.Handle(request, It.IsAny<CancellationToken>());
 
         Assert.Multiple(() =>

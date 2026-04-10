@@ -46,6 +46,13 @@ public class ValidateIntegrityMiddleware(
                 //Comparar el hash
                 await ValidateIntegrity(httpContext, contextRequest, nounce, secretDecrypt, hmacToken).ConfigureAwait(false);
             }
+            catch (CustomException custom)
+            {
+                if (Logger.IsEnabled(LogLevel.Error))
+                    Logger.LogError(custom, "{@Message}", custom.Message);
+                if (_appSettings.IntegrityValidation.ThrowExceptionIfError)
+                    throw;
+            }
             catch (Exception ex)
             {
                 if (Logger.IsEnabled(LogLevel.Error))

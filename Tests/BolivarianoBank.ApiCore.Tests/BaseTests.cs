@@ -14,8 +14,8 @@ namespace BolivarianoBank.ApiCore.Tests;
 
 public class BaseTests
 {
-    protected TestServer? Server;
-    protected HttpClient? Client;
+    protected TestServer Server;
+    protected HttpClient Client;
     protected readonly JwtSettings Jwt;
     protected readonly RsaSecuritySettings RsaSecuritySettings;
 
@@ -45,7 +45,7 @@ public class BaseTests
         ReadCommentHandling = JsonCommentHandling.Skip
     };
 
-    public async Task<(HttpStatusCode, T?)> GetResponse<T>(HttpClient client, HttpRequestMessage request)
+    public async Task<(HttpStatusCode, T)> GetResponse<T>(HttpClient client, HttpRequestMessage request)
     {
         var response = await client.SendAsync(request);
         var responseContent = await response.Content.ReadAsStringAsync();
@@ -56,7 +56,7 @@ public class BaseTests
         return (response.StatusCode, JsonSerializer.Deserialize<T>(responseContent, JsonOptions));
     }
 
-    public async Task<(HttpStatusCode, T?)> SendAsync<T>(HttpMethod method, string url, object? body = null, Dictionary<string, string>? headers = null, bool addIntegrity = true, bool tokenRequired = false)
+    public async Task<(HttpStatusCode, T)> SendAsync<T>(HttpMethod method, string url, object body, Dictionary<string, string> headers = null, bool addIntegrity = true, bool tokenRequired = false)
     {
         var request = new HttpRequestMessage(method, url);
 

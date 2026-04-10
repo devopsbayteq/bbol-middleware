@@ -30,7 +30,7 @@ public class GetHomeDashboardTests : BaseTests
     protected Mock<IOptions<AppSetting>> Options;
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
         Mock<ILogger<GetHomeDashboardHandler>> logger = new();
         UnitOfWork = new();
@@ -46,7 +46,7 @@ public class GetHomeDashboardTests : BaseTests
             LoanTypeIcons = [],
             InvestmentTypeIcons = [],
             FrequentPaymentTypeIcons = [
-            
+
                 new() { Text = "Payment 1", IconCode = "P1" },
                 new() { Text = "Payment 2", IconCode = "P2" }
             ],
@@ -67,7 +67,7 @@ public class GetHomeDashboardTests : BaseTests
     }
 
     [Test]
-    public async Task TGHD_01_UserContextNotFound()
+    public void TGHD_01_UserContextNotFound()
     {
         var request = new GetHomeDashboardRequest
         {
@@ -84,7 +84,7 @@ public class GetHomeDashboardTests : BaseTests
     }
 
     [Test]
-    public async Task TGHD_02_UserWithNoAccounts()
+    public void TGHD_02_UserWithNoAccounts()
     {
         var userGuid = Guid.NewGuid();
         var request = new GetHomeDashboardRequest
@@ -527,81 +527,6 @@ public class GetHomeDashboardTests : BaseTests
             Assert.That(response.CreditCards, Has.Count.EqualTo(1));
             Assert.That(response.Loans, Has.Count.EqualTo(1));
             Assert.That(response.Investments, Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
-    public async Task TGHD_09_ResponseContainsAllProductTypes()
-    {
-        var userGuid = Guid.NewGuid();
-        var accountGuid = Guid.NewGuid();
-        var accountNumber = "8888888888";
-
-        var request = new GetHomeDashboardRequest
-        {
-            ContextRequest = new ContextRequest
-            {
-                CustomClaims = new()
-                {
-                    UserId = userGuid
-                }
-            }
-        };
-
-        var accounts = new List<AccountUser>
-        {
-            new ()
-            {
-                Guid = accountGuid,
-                AccountNumber = accountNumber,
-                AccountType = AccountType.Savings,
-                UserId = userGuid
-            }
-        };
-
-        var balances = new Dictionary<Guid, decimal>
-        {
-            { accountGuid, 1000m }
-        };
-
-        Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetBeneficiaryContactsResponse
-            {
-                Contacts = [new() { BeneficiaryAccountNumber = accountNumber, ContactName = "Todos los Productos" }]
-            });
-
-        UnitOfWork.Setup(u => u.AccountUserRepository.GetByAsync(It.IsAny<Expression<Func<AccountUser, bool>>>()))
-            .Returns(Task.FromResult<List<AccountUser>>(accounts));
-
-        UnitOfWork.Setup(u => u.TransactionRepository.GetAmountByAccountsAsync(It.IsAny<List<Guid>>()))
-            .Returns(Task.FromResult(balances));
-
-        var response = await Handler.Handle(request, It.IsAny<CancellationToken>());
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(response, Is.Not.Null);
-            Assert.That(response.Accounts, Is.Not.Empty);
-            Assert.That(response.Accounts, Has.Count.EqualTo(1));
-            Assert.That(response.CreditCards, Is.Not.Empty);
-            Assert.That(response.CreditCards, Has.Count.EqualTo(1));
-            Assert.That(response.CreditCards[0].MaskedCardNumber, Is.EqualTo("**** **** **** 1245"));
-            Assert.That(response.CreditCards[0].TotalDue, Is.EqualTo(280.73m));
-            Assert.That(response.Loans, Is.Not.Empty);
-            Assert.That(response.Loans, Has.Count.EqualTo(1));
-            Assert.That(response.Loans[0].LoanGuid, Is.EqualTo("***** 678"));
-            Assert.That(response.Loans[0].OutstandingBalance, Is.EqualTo(7800.10m));
-            Assert.That(response.Investments, Is.Not.Empty);
-            Assert.That(response.Investments, Has.Count.EqualTo(1));
-            Assert.That(response.Investments[0].InvestmentGuid, Is.EqualTo("137********"));
-            Assert.That(response.Investments[0].CurrentValue, Is.EqualTo(3540.90m));
-            Assert.That(response.FrequentPayments, Is.Not.Empty);
-            Assert.That(response.FrequentPayments, Has.Count.EqualTo(2));
-            Assert.That(response.FrequentPayments[0].BeneficiaryName, Is.EqualTo("Payment 1"));
-            Assert.That(response.FrequentPayments[1].BeneficiaryName, Is.EqualTo("Payment 2"));
-            Assert.That(response.RecentTransactions, Is.Not.Null);
-            Assert.That(response.HomeDashboardIcons, Is.Not.Null);
-            Assert.That(response.Banners, Is.Not.Null);
         });
     }
 

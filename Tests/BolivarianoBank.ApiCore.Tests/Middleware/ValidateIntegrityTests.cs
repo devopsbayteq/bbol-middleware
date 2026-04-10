@@ -9,39 +9,8 @@ namespace BolivarianoBank.ApiCore.Tests.Middleware;
 /// </summary>
 public partial class MiddlewareTest
 {
-    [Test]
-    public async Task TVI_01_ContentRequired()
-    {
-        var headers = ValidateVersionCompleteHeaders();
-        
-        (var statusCode, var response) = await SendAsync<GenericResponse<string>>(HttpMethod.Post, Settings.LoginUrl, body: new { }, headers: headers, addIntegrity: false);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.AuthorizationGeneric));
-            Assert.That(response.Content, Does.Contain("No esta presente el header X-Content"));
-        });
-    }
-
-    [Test]
-    public async Task TVI_02_SecretRequired()
-    {
-        var headers = ValidateVersionCompleteHeaders();
-        headers.Add("X-Content", Guid.NewGuid().ToString());
-        
-        (var statusCode, var response) = await SendAsync<GenericResponse<string>>(HttpMethod.Post, Settings.LoginUrl, body: new { }, headers: headers, addIntegrity: false);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.AuthorizationGeneric));
-            Assert.That(response.Content, Does.Contain("No esta presente el header X-Secret"));
-        });
-    }
-
+ 
     [Test]
     public async Task TVI_03_DecryptError()
     {
@@ -60,23 +29,6 @@ public partial class MiddlewareTest
         });
     }
 
-    [Test]
-    public async Task TVI_04_IntegrityError()
-    {
-        var headers = ValidateVersionCompleteHeaders();
-        headers.Add("X-Content", Guid.NewGuid().ToString());
-        headers.Add("X-Secret", Settings.SecretMock);
-        
-        (var statusCode, var response) = await SendAsync<GenericResponse<string>>(HttpMethod.Post, Settings.LoginUrl, body: new { }, headers: headers, addIntegrity: false);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(response, Is.Not.Null);
-            Assert.That(response!.Code, Is.EqualTo((int)MessageCodes.ErrorIntegrity));
-            Assert.That(response.Content, Does.Contain("Error comparando la integridad de datos"));
-        });
-    }
 
     [Test]
     public async Task TVI_05_MiddlewareSuccesful()

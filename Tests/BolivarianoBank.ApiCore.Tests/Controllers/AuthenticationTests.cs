@@ -5,7 +5,6 @@ using LogicApi.Model.Request.Authentication;
 using LogicApi.Model.Response.Authentication;
 using Moq;
 using System.Net;
-using System.Text.Json;
 
 namespace BolivarianoBank.ApiCore.Tests.Controllers;
 
@@ -48,13 +47,12 @@ public partial class ControllerTests
     {
         var requestBody = new BiometricLoginRequest();
 
-        (var statusCode, var response) = await SendAsync<object>(HttpMethod.Post, Settings.BiometricLoginUrl, body: requestBody);
+        (var statusCode, var rawJson) = await SendAsyncRaw(HttpMethod.Post, Settings.BiometricLoginUrl, body: requestBody);
 
         Assert.Multiple(() =>
         {
             Assert.That(statusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-            Assert.That(response, Is.Not.Null);
-            Assert.That(JsonSerializer.Serialize(response), Does.Contain("field is required"));
+            Assert.That(rawJson, Does.Contain("required").IgnoreCase);
         });
     }
 

@@ -19,7 +19,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetContractBalanceRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(contractBalanceResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<GetContractBalanceResponse>>(HttpMethod.Get, Settings.ContractBalanceUrl, tokenRequired: true);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetContractBalanceResponse>>(HttpMethod.Get, Settings.ContractBalanceUrl, body: null, tokenRequired: true);
 
         Assert.Multiple(() =>
         {
@@ -36,7 +36,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetHomeDashboardRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(homeDashboardResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<GetHomeDashboardResponse>>(HttpMethod.Get, Settings.ContractBalanceHomeUrl, tokenRequired: true);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetHomeDashboardResponse>>(HttpMethod.Get, Settings.ContractBalanceHomeUrl, body: null, tokenRequired: true);
 
         Assert.Multiple(() =>
         {

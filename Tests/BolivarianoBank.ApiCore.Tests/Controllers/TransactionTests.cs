@@ -19,7 +19,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetRecentTransactionsRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(getRecentTransactionsResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<GetRecentTransactionsResponse>>(HttpMethod.Get, Settings.TransactionUrl + "/recent", tokenRequired: true);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetRecentTransactionsResponse>>(HttpMethod.Get, Settings.TransactionUrl + "/recent", body: null, tokenRequired: true);
 
         Assert.Multiple(() =>
         {
@@ -60,7 +60,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetTransactionsQueryRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(getTransactionsQueryResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<GetTransactionsQueryResponse>>(HttpMethod.Get, Settings.TransactionUrl + $"?accountGuid={Guid.NewGuid()}", tokenRequired: true);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetTransactionsQueryResponse>>(HttpMethod.Get, Settings.TransactionUrl + $"?accountGuid={Guid.NewGuid()}", body: null, tokenRequired: true);
 
         Assert.Multiple(() =>
         {

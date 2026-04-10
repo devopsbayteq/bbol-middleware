@@ -31,20 +31,7 @@ public class ValidateIntegrityMiddleware(
         {
             try
             {
-                ValidateHeaders(contextRequest);
-                //Arma el nounce
-
-                string bodyAsText = await GetRawBodyRequest(httpContext);
-                string hashBody = string.IsNullOrEmpty(bodyAsText) ? string.Empty : bodyAsText.ToSha256();
-                string queryString = GetQueryParameters(httpContext);
-                var nounce = $"{httpContext.Request.Method}||{queryString}||{hashBody}||{contextRequest.Headers?.Time}";
-                //Encripta
-                var secretDecode = contextRequest.Headers.Secret.Decode();
-                var secretDecrypt = RsaSecurity.Decrypt(_appSettings.RsaSecurity.ServerBase64PrivateKey, secretDecode);
-                //Calcula el hash de integridad
-                var hmacToken = nounce.ToSha256(secretDecrypt);
-                //Comparar el hash
-                await ValidateIntegrity(httpContext, contextRequest, nounce, secretDecrypt, hmacToken).ConfigureAwait(false);
+                await ValidationAsync(httpContext, contextRequest).ConfigureAwait(false);
             }
             catch (CustomException custom)
             {
@@ -62,6 +49,24 @@ public class ValidateIntegrityMiddleware(
             }
         }
         await Next(httpContext).ConfigureAwait(false);
+    }
+
+    private async Task ValidationAsync(HttpContext httpContext, ContextRequest contextRequest)
+    {
+        ValidateHeaders(contextRequest);
+        //Arma el nounce
+
+        string bodyAsText = await GetRawBodyRequest(httpContext);
+        string hashBody = string.IsNullOrEmpty(bodyAsText) ? string.Empty : bodyAsText.ToSha256();
+        string queryString = GetQueryParameters(httpContext);
+        var nounce = $"{httpContext.Request.Method}||{queryString}||{hashBody}||{contextRequest.Headers?.Time}";
+        //Encripta
+        var secretDecode = contextRequest.Headers.Secret.Decode();
+        var secretDecrypt = RsaSecurity.Decrypt(_appSettings.RsaSecurity.ServerBase64PrivateKey, secretDecode);
+        //Calcula el hash de integridad
+        var hmacToken = nounce.ToSha256(secretDecrypt);
+        //Comparar el hash
+        await ValidateIntegrity(httpContext, contextRequest, nounce, secretDecrypt, hmacToken).ConfigureAwait(false);
     }
 
     /// <summary>

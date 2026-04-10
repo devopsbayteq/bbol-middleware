@@ -20,7 +20,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(beneficiaryContactsResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<LoginResponse>>(HttpMethod.Get, Settings.ContactsUrl);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetBeneficiaryContactsResponse>>(HttpMethod.Get, Settings.ContactsUrl, body: null);
 
         Assert.Multiple(() =>
         {
@@ -36,7 +36,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetBeneficiaryContactsRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(beneficiaryContactsResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<LoginResponse>>(HttpMethod.Get, Settings.ContactsUrl, tokenRequired: true);
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetBeneficiaryContactsResponse>>(HttpMethod.Get, Settings.ContactsUrl, body: null, tokenRequired: true);
 
         Assert.Multiple(() =>
         {

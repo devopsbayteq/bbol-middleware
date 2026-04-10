@@ -22,7 +22,7 @@ public partial class ControllerTests
         Mediator.Setup(m => m.Send(It.IsAny<GetPublicKeyRequest>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(publicKeyResponse));
 
-        (var statusCode, var response) = await SendAsync<GenericResponse<GetPublicKeyResponse>>(HttpMethod.Get, Settings.SecurityUrl + "/public-key");
+        (var statusCode, var response) = await SendAsync<GenericResponse<GetPublicKeyResponse>>(HttpMethod.Get, Settings.SecurityUrl + "/public-key", body: null);
 
         Assert.Multiple(() =>
         {

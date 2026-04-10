@@ -56,7 +56,13 @@ public class BaseTests
         return (response.StatusCode, JsonSerializer.Deserialize<T>(responseContent, JsonOptions));
     }
 
-    public async Task<(HttpStatusCode, T)> SendAsync<T>(HttpMethod method, string url, object body, Dictionary<string, string> headers = null, bool addIntegrity = true, bool tokenRequired = false)
+    private async Task<HttpRequestMessage> CreateRequestAsync(
+        HttpMethod method,
+        string url,
+        object body,
+        Dictionary<string, string> headers,
+        bool addIntegrity,
+        bool tokenRequired)
     {
         var request = new HttpRequestMessage(method, url);
 
@@ -99,7 +105,30 @@ public class BaseTests
             foreach (var header in headers)
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
 
-        return await GetResponse<T>(Client!, request);
+        return request;
+    }
+
+    public async Task<(HttpStatusCode, T)> SendAsync<T>(HttpMethod method, string url, object body, Dictionary<string, string> headers = null, bool addIntegrity = true, bool tokenRequired = false)
+    {
+        var request = await CreateRequestAsync(method, url, body, headers, addIntegrity, tokenRequired).ConfigureAwait(false);
+        return await GetResponse<T>(Client!, request).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Misma petición que <see cref="SendAsync{T}"/>, pero devuelve el cuerpo sin deserializar (útil para 400 ProblemDetails).
+    /// </summary>
+    public async Task<(HttpStatusCode StatusCode, string RawContent)> SendAsyncRaw(
+        HttpMethod method,
+        string url,
+        object body,
+        Dictionary<string, string> headers = null,
+        bool addIntegrity = true,
+        bool tokenRequired = false)
+    {
+        var request = await CreateRequestAsync(method, url, body, headers, addIntegrity, tokenRequired).ConfigureAwait(false);
+        using var response = await Client!.SendAsync(request).ConfigureAwait(false);
+        var raw = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        return (response.StatusCode, raw ?? string.Empty);
     }
 
     protected static Dictionary<string, string> ConfigureContextCompleteHeaders()

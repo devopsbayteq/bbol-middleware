@@ -29,7 +29,7 @@ public class GenerateBiometricChallengeHandler(
         var decodeUserEncrypt = request.UserEncryptBase64.Decode();
         var user = RsaSecurity.Decrypt(options.Value.RsaSecurity.ServerBase64PrivateKey, decodeUserEncrypt);
         var userEntity = await unitOfWork.UserRepository.GetByFirstOrDefaultAsync(
-            where => where.UserName == user).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El usuario no existe.");
+            where => where.UserName == user || where.Alias == user).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El usuario no existe.");
 
         var deviceGuid = (request.ContextRequest?.Headers?.DeviceId) ?? throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo obtener el DeviceGuid del contexto.");
         var deviceEntity = await unitOfWork.DeviceRepository.GetByFirstOrDefaultAsync(

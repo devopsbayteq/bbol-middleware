@@ -33,7 +33,7 @@ public class BiometricLoginHandler(
         var device = await unitOfWork.DeviceRepository.GetByFirstOrDefaultAsync(
             where => where.DeviceId == deviceGuid).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El dispositivo no está registrado para el usuario.");
         var userEntity = await unitOfWork.UserRepository.GetByFirstOrDefaultAsync(
-            where => where.UserName == username).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El usuario no existe.");
+            where => where.UserName == username || where.Alias == username).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El usuario no existe.");
         EnsureUserNotBlocked(userEntity);
         var expectedChallenge = await unitOfWork.UserDeviceChallengeRepository.GetByFirstOrDefaultAsync(
             where => where.UserId == userEntity.Guid && where.DeviceId == device.Guid).ConfigureAwait(false);

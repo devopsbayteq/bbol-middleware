@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Core;
 namespace ApiCore.Config;
@@ -19,6 +21,24 @@ public static class SerilogExtension
         builder.Logging.AddSerilog(Log.Logger);
         builder.Services.AddCustomApplicationInsightsTelemetry(builder.Configuration);
         return logger;
+    }
+
+    /// <summary>
+    /// Serilog + Application Insights cuando el host se crea con <see cref="Host.CreateDefaultBuilder"/> y <see cref="IHostBuilder"/> (sin <c>WebApplicationBuilder</c>).
+    /// </summary>
+    public static IHostBuilder AddSerilogCustom(this IHostBuilder hostBuilder)
+    {
+        hostBuilder.UseSerilog((context, _, loggerConfiguration) =>
+        {
+            loggerConfiguration.ReadFrom.Configuration(context.Configuration);
+        });
+
+        hostBuilder.ConfigureServices((context, services) =>
+        {
+            services.AddCustomApplicationInsightsTelemetry(context.Configuration);
+        });
+
+        return hostBuilder;
     }
 
     /// <summary>

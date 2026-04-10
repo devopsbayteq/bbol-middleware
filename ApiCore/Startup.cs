@@ -10,7 +10,6 @@ using Common.WebApi.Models.AppSettings;
 using LogicApi.BusinessLogic;
 using PersistenceDb.Infrastructure.Extension;
 using Serilog;
-using Serilog.Core;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -20,7 +19,6 @@ public class Startup
 {
     public IConfiguration Configuration { get; }
     public IWebHostEnvironment Environment { get; }
-    public Logger Logger { get; }
 
     public Startup(IWebHostEnvironment env)
     {
@@ -37,11 +35,7 @@ public class Startup
         Configuration = builder.Build();
         Environment = env;
 
-        Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(Configuration)
-            .CreateLogger();
-
-        Logger.Information("Environment: {@Environment}", Environment.EnvironmentName);
+        Log.Information("Environment: {@Environment}", Environment.EnvironmentName);
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -94,7 +88,7 @@ public class Startup
         {
             endpoints.MapControllers();
         });
-        Logger.Information("Aplicación iniciada correctamente");
+        Log.Information("Aplicación iniciada correctamente");
     }
 
     public void ConfigureContainer(ContainerBuilder _)

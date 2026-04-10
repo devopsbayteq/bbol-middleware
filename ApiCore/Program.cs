@@ -1,3 +1,4 @@
+using ApiCore.Config;
 using Autofac.Extensions.DependencyInjection;
 
 namespace ApiCore;
@@ -15,6 +16,7 @@ public class Program
 
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .AddSerilogCustom()
             .UseServiceProviderFactory(new AutofacServiceProviderFactory())
             .ConfigureWebHostDefaults(webBuilder =>
             {

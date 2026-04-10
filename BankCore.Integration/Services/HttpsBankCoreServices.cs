@@ -14,7 +14,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace BankCore.Integration.Services;
 
-internal sealed class HttpsBankCoreServices(
+public sealed class HttpsBankCoreServices(
     IHttpClientFactory httpClientFactory,
     ITokenProvider tokenProvider,
     ILogger<HttpsBankCoreServices> logger

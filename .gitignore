@@ -13,3 +13,6 @@ Persistence/Scripts/
 *.user
 logs
 *.lscache
+/.sonarqube
+/CoverageReport
+/TestResults

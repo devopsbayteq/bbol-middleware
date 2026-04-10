@@ -25,10 +25,10 @@ public class BiometricLoginHandler(
 {
     public async override Task<LoginResponse> Handle(BiometricLoginRequest request, CancellationToken cancellationToken)
     {
+        if (request.UsernameEncryptBase64.IsNullOrEmpty())
+            throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo validar el username encriptado.");
         var usernameEncrypted = request.UsernameEncryptBase64.Decode();
         var username = RsaSecurity.Decrypt(AppSettings.RsaSecurity.ServerBase64PrivateKey, usernameEncrypted);
-        if (username.IsNullOrEmpty())
-            throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo validar el username encriptado.");
         var deviceGuid = (request.ContextRequest?.Headers?.DeviceId) ?? throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo obtener el DeviceGuid del contexto.");
         var device = await unitOfWork.DeviceRepository.GetByFirstOrDefaultAsync(
             where => where.DeviceId == deviceGuid).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El dispositivo no está registrado para el usuario.");

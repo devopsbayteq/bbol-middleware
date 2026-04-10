@@ -24,10 +24,10 @@ public class GenerateBiometricChallengeHandler(
 {
     public async override Task<GenerateBiometricChallengeResponse> Handle(GenerateBiometricChallengeRequest request, CancellationToken cancellationToken)
     {
+        if (request.UserEncryptBase64.IsNullOrEmpty())
+            throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo validar el usuario encriptado.");
         var decodeUserEncrypt = request.UserEncryptBase64.Decode();
         var user = RsaSecurity.Decrypt(options.Value.RsaSecurity.ServerBase64PrivateKey, decodeUserEncrypt);
-        if (user.IsNullOrEmpty())
-            throw new CustomException(MessageCodes.InvalidCredentials, "No se pudo validar el usuario encriptado.");
         var userEntity = await unitOfWork.UserRepository.GetByFirstOrDefaultAsync(
             where => where.UserName == user).ConfigureAwait(false) ?? throw new CustomException(MessageCodes.InvalidCredentials, "El usuario no existe.");
 

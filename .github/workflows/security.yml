@@ -59,9 +59,11 @@ jobs:
         with:
           project: "bbol-middleware"
           path: "."
-          format: "HTML, SARIF"
+          format: "HTML"
           out: "reports"
           args: >
+            --format SARIF
+            --format JSON
             --enableExperimental
             --failOnCVSS 11
 
